@@ -1,0 +1,87 @@
+// app/signup/page.tsx
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSupabaseClient } from '@supabase/auth-helpers-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import Link from 'next/link';
+import { toast } from '@/hooks/use-toast';
+
+export default function SignUp() {
+  const supabase = useSupabaseClient();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const router = useRouter();
+
+  const handleSignUp = async () => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+    if (error) {
+      console.error('Error signing up:', error.message);
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: 'Check your email',
+        description: 'A confirmation link has been sent to your email.',
+      });
+      router.push('/signin');
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-background">
+      <Card className="w-full max-w-md p-6">
+        <CardHeader>
+          <CardTitle className="text-center text-2xl">Sign Up</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="grid gap-1">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                onChange={(e) => setEmail(e.target.value)}
+                value={email}
+                placeholder="name@example.com"
+                required
+              />
+            </div>
+            <div className="grid gap-1">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                autoComplete="new-password"
+                onChange={(e) => setPassword(e.target.value)}
+                value={password}
+                placeholder="Create a password"
+                required
+              />
+            </div>
+            <Button onClick={handleSignUp} className="w-full">
+              Sign Up
+            </Button>
+          </div>
+          <div className="text-center mt-4">
+            Already have an account?{' '}
+            <Link href="/signin" className="text-primary underline">
+              Sign In
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
