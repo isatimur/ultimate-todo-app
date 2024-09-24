@@ -90,7 +90,7 @@ export default function UltimateTodoAppComponent() {
   const router = useRouter()
 
 
- // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
 
   const fetchTasks = useCallback(async () => {
     const { data, error } = await supabase
@@ -109,7 +109,7 @@ export default function UltimateTodoAppComponent() {
       );
     }
   }, []);
-   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -127,7 +127,7 @@ export default function UltimateTodoAppComponent() {
       console.error('Unexpected error fetching projects:', error);
     }
   }, []);
-   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
 
   const fetchTemplates = useCallback(async () => {
     try {
@@ -151,7 +151,8 @@ export default function UltimateTodoAppComponent() {
       await Promise.all([fetchTasks(), fetchProjects(), fetchTemplates()]);
       subscribeToRealtimeChanges();
     }
-     // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, fetchTasks, fetchProjects, fetchTemplates]);
 
   useEffect(() => {
@@ -171,7 +172,7 @@ export default function UltimateTodoAppComponent() {
     return () => {
       authListener.subscription.unsubscribe();
     };
-     // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
 
@@ -205,28 +206,49 @@ export default function UltimateTodoAppComponent() {
     return () => clearInterval(interval)
   }, [activeTimer])
 
-  const subscribeToRealtimeChanges = () => {
-    supabase
+  const subscribeToRealtimeChanges = useCallback(() => {
+    const tasksSubscription = supabase
       .channel('tasks')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'tasks',
+      }, payload => {
+        console.log('Realtime task change:', payload);
         fetchTasks();
       })
       .subscribe();
 
-    supabase
+    const projectsSubscription = supabase
       .channel('projects')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => {
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'projects',
+      }, payload => {
+        console.log('Realtime project change:', payload);
         fetchProjects();
       })
       .subscribe();
 
-    supabase
+    const templatesSubscription = supabase
       .channel('templates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'templates' }, () => {
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'templates',
+      }, payload => {
+        console.log('Realtime template change:', payload);
         fetchTemplates();
       })
       .subscribe();
-  };
+
+    return () => {
+      supabase.removeChannel(tasksSubscription);
+      supabase.removeChannel(projectsSubscription);
+      supabase.removeChannel(templatesSubscription);
+    };
+  }, [fetchTasks, fetchProjects, fetchTemplates]);
 
 
   const addTask = useCallback(async () => {
@@ -570,7 +592,7 @@ export default function UltimateTodoAppComponent() {
   return (
     <div className={`max-w-7xl mx-auto p-4 min-h-screen ${darkMode ? 'dark' : ''}`}>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Super Todo App</h1>
+        <h1 className="text-2xl font-bold">Ultima - #1 ToDo application</h1>
         <div className="flex items-center space-x-2">
           <Select value={theme} onValueChange={setTheme}>
             <SelectTrigger className="w-[180px]">
