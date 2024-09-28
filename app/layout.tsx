@@ -1,7 +1,7 @@
 
 import localFont from 'next/font/local';
 import './globals.css';
-import { ToastProvider } from '@/components/ui/toast';
+import { Toaster } from '@/components/ui/sonner';
 import SupabaseProvider from '@/components/SupabaseProvider';
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
@@ -36,7 +36,7 @@ export default async function RootLayout({
       <body suppressHydrationWarning={true}
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ToastProvider />
+        <Toaster />
         <SupabaseProvider>{children}</SupabaseProvider>
       </body>
     </html>
