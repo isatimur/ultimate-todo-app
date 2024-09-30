@@ -283,13 +283,11 @@ export default function Projects({
                     <Card
                         key={project.id}
                         onClick={() => openProjectDetails(project)}
-                        className="shadow hover:shadow-lg transition-transform transform hover:-translate-y-1 cursor-pointer border-l-4"
-                        style={{
-                            borderColor: project?.color,
-                            backgroundImage: getBackgroundByPriority('HIGH'),
-                        }}
+                        className="relative overflow-hidden rounded-lg shadow-lg cursor-pointer"
                         onClick={() => tasks && openTaskDetails(tasks)}
-                    >
+                    ><div className="absolute inset-0 h-full w-full bg-white bg-[radial-gradient(#9b59b6_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#9b59b6_1%,transparent_100%)]" />
+<div className="absolute inset-0 h-full w-full bg-white bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#fff_05%,transparent_100%)]"
+ /> <div className="relative z-10 p-6 space-y-4">
                         <CardHeader className="flex justify-between items-center">
                             <CardTitle style={{ color: project.color }}>{project.name}</CardTitle>
                             <div className="flex space-x-2">
@@ -330,6 +328,7 @@ export default function Projects({
                                 <p className="text-sm mt-1">{getProjectProgress(project.name)}% Complete</p>
                             </div>
                         </CardContent>
+                    </div>
                     </Card>
                 ))}
             </div>

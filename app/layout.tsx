@@ -36,15 +36,16 @@ export default async function RootLayout({
     <html lang="en">
       <body suppressHydrationWarning={true}
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+
       >
         <Toaster />
         <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-        <SupabaseProvider>{children}</SupabaseProvider>
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <SupabaseProvider>{children}</SupabaseProvider>
         </ThemeProvider>
       </body>
     </html>
