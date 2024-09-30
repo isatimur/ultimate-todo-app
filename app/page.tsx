@@ -1,4 +1,4 @@
-ååimport { redirect } from 'next/navigation';
+import { redirect } from 'next/navigation';
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import UltimateTodoAppComponent2 from '@/components/ultima-todo-app-component';
