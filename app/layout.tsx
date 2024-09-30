@@ -39,12 +39,7 @@ export default async function RootLayout({
 
       >
         <Toaster />
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem={true} >
           <SupabaseProvider>{children}</SupabaseProvider>
         </ThemeProvider>
       </body>

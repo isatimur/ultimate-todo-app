@@ -1,8 +1,9 @@
-// pages/accept-invitation/[token].tsx
+'use client'
+
 import { useRouter } from 'next/router';
 import { useEffect } from 'react';
 import { supabase } from '@/lib/supabase-browser';
-import { toast } from '@/hooks/useToast';
+import { toast } from 'sonner';
 
 const AcceptInvitation = () => {
   const router = useRouter();
@@ -19,11 +20,7 @@ const AcceptInvitation = () => {
         .single();
 
       if (error || !data || data.status !== 'pending') {
-        toast({
-          title: 'Invalid Invitation',
-          description: 'This invitation is invalid or has already been used.',
-          variant: 'destructive',
-        });
+        toast.error('This invitation is invalid or has already been used.');
         return;
       }
 
@@ -32,11 +29,7 @@ const AcceptInvitation = () => {
         .insert([{ team_id: data.team_id, user_id: (await supabase.auth.getUser()).data.user?.id, role: 'member' }]);
 
       if (joinError) {
-        toast({
-          title: 'Error',
-          description: 'Failed to join the team.',
-          variant: 'destructive',
-        });
+        toast.error('Failed to join the team.');
         return;
       }
 
@@ -45,10 +38,7 @@ const AcceptInvitation = () => {
         .update({ status: 'accepted', responded_at: new Date() })
         .eq('id', data.id);
 
-      toast({
-        title: 'Joined Team',
-        description: 'You have successfully joined the team.',
-      });
+      toast.success('You have successfully joined the team.');
 
       router.push('/teams'); // Redirect to teams page
     };

@@ -10,7 +10,6 @@ import {
     DialogTitle,
     DialogFooter,
 } from './ui/dialog';
-import { toast } from '@/hooks/use-toast';
 import {
     Select,
     SelectTrigger,
@@ -20,6 +19,9 @@ import {
 } from './ui/select';
 import { Badge } from './ui/badge';
 import { HexColorPicker } from 'react-colorful';
+import { cn } from '@/lib/utils';
+import { DotsPattern } from './ui/dotspattern';
+import { toast } from 'sonner';
 
 interface Subtask {
     id: number;
@@ -125,17 +127,10 @@ export default function Projects({
             setNewProjectColor('#ffffff');
             setNewProjectDescription('');
             setIsNewProjectDialogOpen(false);
-            toast({
-                title: 'Project added',
-                description: `Project "${newProjectName}" has been added successfully.`,
-            });
+
         } catch (error) {
             console.error('Error adding project:', error);
-            toast({
-                title: 'Error',
-                description: 'Failed to add project.',
-                variant: 'destructive',
-            });
+            toast.error('Failed to add project.');
         } finally {
             setLoadingAddProject(false);
         }
@@ -163,17 +158,10 @@ export default function Projects({
                     editedProjectDescription
                 );
                 setEditingProject(null);
-                toast({
-                    title: 'Project updated',
-                    description: `Project "${editedProjectName}" has been updated successfully.`,
-                });
             } catch (error) {
                 console.error('Error updating project:', error);
-                toast({
-                    title: 'Error',
-                    description: 'Failed to update project.',
-                    variant: 'destructive',
-                });
+                toast.error('Failed to update project.');
+
             } finally {
                 setLoadingEditProject(false);
             }
@@ -192,35 +180,15 @@ export default function Projects({
             try {
                 await deleteProject(confirmDeleteProjectId);
                 setConfirmDeleteProjectId(null);
-                toast({
-                    title: 'Project deleted',
-                    description: 'The project has been deleted successfully.',
-                    variant: 'destructive',
-                });
+
             } catch (error) {
                 console.error('Error deleting project:', error);
-                toast({
-                    title: 'Error',
-                    description: 'Failed to delete project.',
-                    variant: 'destructive',
-                });
+                toast.error('Failed to delete project.');
             }
         }
     };
 
-    const getBackgroundByPriority = (priority: string) => {
-        switch (priority) {
-            case 'Urgent':
-                return 'linear-gradient(135deg, #ffe6e6 0%, #ffcccc 100%)'; // Red shades
-            case 'High':
-                return 'linear-gradient(135deg, #fff0cc 0%, #ffe680 100%)'; // Orange shades
-            case 'Medium':
-                return 'linear-gradient(135deg, #e6f7ff 0%, #cceeff 100%)'; // Blue shades
-            case 'Low':
-            default:
-                return 'linear-gradient(135deg, #e6ffe6 0%, #ccffcc 100%)'; // Green shades
-        }
-    };
+
 
     // Cancel delete
     const cancelDeleteProject = () => {
@@ -251,6 +219,7 @@ export default function Projects({
         }
         return result;
     }, [projects, searchQuery, sortOption]);
+
 
     return (
         <div>
@@ -284,51 +253,54 @@ export default function Projects({
                         key={project.id}
                         onClick={() => openProjectDetails(project)}
                         className="relative overflow-hidden rounded-lg shadow-lg cursor-pointer"
-                        onClick={() => tasks && openTaskDetails(tasks)}
-                    ><div className="absolute inset-0 h-full w-full bg-white bg-[radial-gradient(#9b59b6_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#9b59b6_1%,transparent_100%)]" />
-<div className="absolute inset-0 h-full w-full bg-white bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#fff_05%,transparent_100%)]"
- /> <div className="relative z-10 p-6 space-y-4">
-                        <CardHeader className="flex justify-between items-center">
-                            <CardTitle style={{ color: project.color }}>{project.name}</CardTitle>
-                            <div className="flex space-x-2">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={(e) => handleEditButtonClick(project, e)}
-                                >
-                                    <EditIcon className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={(e) => handleDeleteButtonClick(project.id, e)}
-                                >
-                                    <TrashIcon className="h-4 w-4 text-red-500" />
-                                </Button>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <p>Total Tasks: {tasks.filter((t) => t.project === project.name).length}</p>
-                            <p>
-                                Completed Tasks:{' '}
-                                {
-                                    tasks.filter(
-                                        (t) => t.project === project.name && t.status === 'Complete'
-                                    ).length
-                                }
-                            </p>
-                            <div className="mt-2">
-                                <p>Progress:</p>
-                                <div className="w-full bg-gray-200 rounded-full h-2">
-                                    <div
-                                        className="bg-blue-600 h-2 rounded-full"
-                                        style={{ width: `${getProjectProgress(project.name)}%` }}
-                                    ></div>
+                    >
+                        <DotsPattern
+                            className={cn(
+                                "[mask-image:radial-gradient(300px_circle_at_center,white,transparent)]",
+                            )}
+                        />
+                        <div className="relative z-10 p-6 space-y-4">
+                            <CardHeader className="flex justify-between items-center">
+                                <CardTitle style={{ color: project.color }}>{project.name}</CardTitle>
+                                <div className="flex space-x-2">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={(e) => handleEditButtonClick(project, e)}
+                                    >
+                                        <EditIcon className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={(e) => handleDeleteButtonClick(project.id, e)}
+                                    >
+                                        <TrashIcon className="h-4 w-4 text-red-500" />
+                                    </Button>
                                 </div>
-                                <p className="text-sm mt-1">{getProjectProgress(project.name)}% Complete</p>
-                            </div>
-                        </CardContent>
-                    </div>
+                            </CardHeader>
+                            <CardContent>
+                                <p>Total Tasks: {tasks.filter((t) => t.project === project.name).length}</p>
+                                <p>
+                                    Completed Tasks:{' '}
+                                    {
+                                        tasks.filter(
+                                            (t) => t.project === project.name && t.status === 'Complete'
+                                        ).length
+                                    }
+                                </p>
+                                <div className="mt-2">
+                                    <p>Progress:</p>
+                                    <div className="w-full bg-gray-200 rounded-full h-2">
+                                        <div
+                                            className="bg-blue-600 h-2 rounded-full"
+                                            style={{ width: `${getProjectProgress(project.name)}%` }}
+                                        ></div>
+                                    </div>
+                                    <p className="text-sm mt-1">{getProjectProgress(project.name)}% Complete</p>
+                                </div>
+                            </CardContent>
+                        </div>
                     </Card>
                 ))}
             </div>
@@ -453,7 +425,7 @@ export default function Projects({
                                                 borderColor: selectedProject.color,
                                                 backgroundImage: 'linear-gradient(135deg, #fff 0%, #f0f0f0 100%)',
                                             }}
-                                            onClick={() => openTaskDetails(task)}
+                                            onClick={() => toast.success(`Task "${task.title}" has been clicked.`)}
                                         >
                                             <CardContent className="flex items-center justify-between p-4">
                                                 <div className="flex items-center space-x-2">

@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { PlusIcon, Wand2Icon } from 'lucide-react';
+import { Wand2Icon } from 'lucide-react';
 import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd';
 import TaskItem from './task-item';
 import { supabase } from '@/lib/supabase-browser';
@@ -9,6 +9,7 @@ import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
+import { SearchBar } from './ui/searchbar';
 
 
 interface Subtask {
@@ -142,15 +143,6 @@ export default function Tasks({
                         size="icon">
                         <Wand2Icon className="size-4" />
                     </Button>
-                    <Button
-                        onClick={() => {
-                            addTask(newTask);
-                            setNewTask('');
-                        }}
-                        aria-label="Add Task"
-                    >
-                        <PlusIcon className="size-4" />
-                    </Button>
                 </div>
                 {/* Filter tasks */}
                 <div className="flex flex-wrap justify-between items-center mb-6">
@@ -169,12 +161,13 @@ export default function Tasks({
                         </Badge>
                     </div>
                     <div className="flex items-center space-x-2">
+                        <SearchBar search={search} setSearch={setSearch} />
                         <Input
                             type="text"
                             placeholder="Search tasks..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-64"
+                            className="hidden"
                         />
                         <Select value={filter} onValueChange={setFilter}>
                             <SelectTrigger className="w-[180px]">

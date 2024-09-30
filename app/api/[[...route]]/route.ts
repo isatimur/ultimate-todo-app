@@ -27,3 +27,4 @@ export const PATCH = handle(routes);
 export const DELETE = handle(routes);
 
 export type ApiRouter = typeof routes;
+export type AppType = typeof app;

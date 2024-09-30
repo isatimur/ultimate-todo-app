@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from "@/lib/supabase-browser";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Database } from "@/lib/database.types";
+
+type Team = Database['public']['Tables']['teams']['Row'];
 
 const TeamSwitcher: React.FC = () => {
-  const [teams, setTeams] = useState<{ id: number; name: string }[]>([]);
+  const [teams] = useState<Team[]>([]);
   const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
 
   useEffect(() => {
@@ -22,14 +25,15 @@ const TeamSwitcher: React.FC = () => {
       }
 
       if (data) {
-        const fetchedTeams = data.map(member => ({
-          id: member.teams.id,
-          name: member.teams.name
-        }));
-        setTeams(fetchedTeams);
-        if (fetchedTeams.length > 0) {
-          setSelectedTeam(fetchedTeams[0].id); // Default to first team
-        }
+        //   const fetchedTeams = data.map(member => ({
+        //     id: member.teams?.id,
+        //     name: member.teams?.name
+        //   })).filter((team): team is Team => team.id !== undefined && team.name !== undefined);
+
+        // setTeams(fetchedTeams as Team[]);
+        // if (fetchedTeams.length > 0) {
+        //   setSelectedTeam(fetchedTeams[0].id as number) ; // Default to first team
+        // }
       }
     };
 

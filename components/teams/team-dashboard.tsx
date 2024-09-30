@@ -4,6 +4,13 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import CreateTeamDialog from './create-team-dialog';
 import { supabase } from '@/lib/supabase-browser';
 
+type Team = {
+    id: string;
+    name: string;
+    description: string;
+    member_count: number;
+};
+
 export default function TeamDashboard() {
     const [teams, setTeams] = useState<Team[]>([]);
     const [createTeamDialogOpen, setCreateTeamDialogOpen] = useState(false);
@@ -14,13 +21,13 @@ export default function TeamDashboard() {
             const { data, error } = await supabase
                 .from('team_members')
                 .select('teams(*)')
-                .eq('user_id', user.id);
+                .eq('user_id', (await supabase.auth.getUser()).data?.user?.id);
 
             if (error) {
                 console.error('Error fetching teams:', error);
             } else {
                 const userTeams = data.map((tm) => tm.teams);
-                setTeams(userTeams);
+                setTeams(userTeams as unknown as Team[]);
             }
         };
 

@@ -21,11 +21,11 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format, addDays, isAfter } from "date-fns"
-import { toast } from "@/hooks/use-toast"
 import { Slider } from "@/components/ui/slider"
 import { supabase } from "@/lib/supabase-browser"
 import { User } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 
 interface Subtask {
   id: number
@@ -296,30 +296,19 @@ export default function UltimateTodoAppComponent() {
           const { data, error } = await supabase.from('tasks').insert([task]).select();
           if (error) {
             console.error('Error adding task:', error);
-            toast({
-              title: 'Error',
-              description: 'Could not add task.',
-              variant: 'destructive',
-            });
+            toast.error('Could not add task.');
           } else {
             console.log('Added task:', data);
             setNewTask('');
             fetchTasks(); // Fetch tasks after adding a new task
-            toast({
-              title: "Task added",
-              description: "Your new task has been added successfully.",
-            });
+            toast.success("Your new task has been added successfully.");
           }
         } else {
           throw new Error(parsedData.error || 'Failed to parse task');
         }
       } catch (error) {
         console.error('Error adding task:', error);
-        toast({
-          title: 'Error',
-          description: 'Could not add task.',
-          variant: 'destructive',
-        });
+        toast.error('Could not add task.');
       }
     }
 
@@ -351,10 +340,7 @@ export default function UltimateTodoAppComponent() {
       } else {
         fetchTasks(); // Fetch tasks after updating a task
         setEditingTask(null)
-        toast({
-          title: "Task updated",
-          description: "Your task has been updated successfully.",
-        })
+        toast.success("Your task has been updated successfully.");
       }
     }, [fetchTasks]);
 
@@ -368,13 +354,9 @@ export default function UltimateTodoAppComponent() {
         console.error('Error deleting task:', error)
       } else {
         fetchTasks(); // Fetch tasks after deleting a task
-        toast({
-          title: "Task deleted",
-          description: "Your task has been deleted successfully.",
-          variant: "destructive",
-        })
+        toast.success("Your task has been deleted successfully.");
       }
-    }, []);
+    }, [fetchTasks]);
 
   const toggleTaskStatus = useCallback(async (id: number) => {
     const taskToUpdate = tasks.find(task => task.id === id)
@@ -390,7 +372,7 @@ export default function UltimateTodoAppComponent() {
         fetchTasks(); // Fetch tasks after toggling task status
       }
     }
-  }, [tasks])
+  }, [fetchTasks, tasks])
 
   const getStatusCount = useMemo(() =>
     (status: Task['status']) => tasks.filter(t => t.status === status).length,
@@ -462,7 +444,7 @@ export default function UltimateTodoAppComponent() {
         fetchTasks(); // Fetch tasks after toggling subtask
       }
     }
-  }, [tasks])
+  }, [fetchTasks, tasks])
 
   const addSubtask = useCallback(async (taskId: number, subtaskTitle: string) => {
     const taskToUpdate = tasks.find(task => task.id === taskId);
@@ -479,7 +461,7 @@ export default function UltimateTodoAppComponent() {
         fetchTasks(); // Fetch tasks after adding subtask
       }
     }
-  }, [tasks]);
+  }, [fetchTasks, tasks]);
 
   const toggleTimer = useCallback(async (taskId: number) => {
     if (isPomodoro) {
@@ -492,10 +474,7 @@ export default function UltimateTodoAppComponent() {
             if (prev <= 1) {
               clearInterval(pomodoroRef.current!)
               pomodoroRef.current = null
-              toast({
-                title: "Pomodoro finished",
-                description: "Time for a break!",
-              })
+              toast.success("Time for a break!");
               return 25 * 60
             }
             return prev - 1
@@ -524,10 +503,7 @@ export default function UltimateTodoAppComponent() {
       console.error('Error adding project:', error)
     } else {
       setProjects(prevProjects => [...prevProjects, data[0]])
-      toast({
-        title: "Project added",
-        description: `Project "${name}" has been added successfully.`,
-      })
+      toast.success(`Project "${name}" has been added successfully.`);
     }
   }, [user])
 
@@ -541,10 +517,7 @@ export default function UltimateTodoAppComponent() {
       console.error('Error adding template:', error)
     } else {
       setTemplates(prevTemplates => [...prevTemplates, data[0]])
-      toast({
-        title: "Template added",
-        description: `Template "${name}" has been added successfully.`,
-      })
+      toast.success(`Template "${name}" has been added successfully.`);
     }
   }, [user])
 
@@ -564,10 +537,7 @@ export default function UltimateTodoAppComponent() {
         console.error('Error applying template:', error)
       } else {
         fetchTasks(); // Fetch tasks after applying the template
-        toast({
-          title: "Template applied",
-          description: `Template "${template.name}" has been applied successfully.`,
-        })
+        toast.success(`Template "${template.name}" has been applied successfully.`);
       }
     }
   }, [templates, fetchTasks])
@@ -589,11 +559,7 @@ export default function UltimateTodoAppComponent() {
       }
     } catch (error) {
       console.error('Error getting AI suggestion:', error);
-      toast({
-        title: 'Error',
-        description: 'Could not get AI suggestion.',
-        variant: 'destructive',
-      });
+      toast.error('Could not get AI suggestion.');
     }
   }, [tasks])
 
@@ -610,10 +576,7 @@ export default function UltimateTodoAppComponent() {
 
   const applyAISuggestion = useCallback(() => {
     // This is a mock function to apply AI suggestions. In a real app, this would implement the suggestion.
-    toast({
-      title: "AI Suggestion Applied",
-      description: "The AI suggestion has been implemented.",
-    })
+    toast.success("The AI suggestion has been implemented.");
     setAiSuggestion('')
   }, [])
 
@@ -636,11 +599,7 @@ export default function UltimateTodoAppComponent() {
 
       } catch (error) {
         console.error('Error generating subtasks:', error);
-        toast({
-          title: 'Error',
-          description: 'Could not generate subtasks.',
-          variant: 'destructive',
-        });
+        toast.error('Could not generate subtasks.');
       }
     }
   };

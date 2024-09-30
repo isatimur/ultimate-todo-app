@@ -78,13 +78,13 @@ export default function TaskItem({
     const [editingSubtaskId, setEditingSubtaskId] = useState<number | null>(null);
     const [editedSubtaskTitle, setEditedSubtaskTitle] = useState('');
 
-    const getSubtaskProgress = (subtasks) => {
+    const getSubtaskProgress = (subtasks: Subtask[]) => {
         const total = subtasks.length;
         const completed = subtasks.filter((sub) => sub.completed).length;
         return total > 0 ? (completed / total) * 100 : 0;
-      };
+    };
 
-      
+
     const addSubtask = () => {
         if (newSubtaskTitle.trim() === '') return;
         const newSubtask = {
@@ -199,12 +199,12 @@ export default function TaskItem({
 
                         {/* Subtasks Accordion */}
                         {task.subtasks && task.subtasks.length > 0 && (
-                        <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                            <div
-                            className="bg-blue-600 h-2 rounded-full"
-                            style={{ width: `${getSubtaskProgress(task.subtasks)}%` }}
-                            ></div>
-                        </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                                <div
+                                    className="bg-blue-600 h-2 rounded-full"
+                                    style={{ width: `${getSubtaskProgress(task.subtasks)}%` }}
+                                ></div>
+                            </div>
                         )}
                         <Accordion type="single" collapsible>
                             <AccordionItem value={`subtasks-${task.id}`}>
@@ -256,13 +256,13 @@ export default function TaskItem({
                                                 }}
                                                 className="flex-1"
                                             />
-                                        <Button
-                                            variant="outline"
-                                            size="icon"
-                                            onClick={() => generateSubtasks(task.id)}
-                                        >
-                                            <Wand2Icon className="size-4" />
-                                        </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="icon"
+                                                onClick={() => generateSubtasks(task.id)}
+                                            >
+                                                <Wand2Icon className="size-4" />
+                                            </Button>
 
                                             <Button variant="outline" size="icon" onClick={addSubtask}>
                                                 <PlusIcon className="h-4 w-4" />

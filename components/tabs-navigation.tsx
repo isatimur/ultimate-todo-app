@@ -3,13 +3,13 @@ import { LayoutDashboardIcon, ListTodoIcon, FolderIcon, BarChartIcon } from 'luc
 
 interface TabsNavigationProps {
   activeTab: string;
-  setActiveTab: (value: string) => void;
+  onValueChange: (value: string) => void;
   children: React.ReactNode;
 }
 
-export default function TabsNavigation({ activeTab, setActiveTab, children }: TabsNavigationProps) {
+export default function TabsNavigation({ activeTab, onValueChange, children }: TabsNavigationProps) {
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab}>
+    <Tabs value={activeTab} onValueChange={onValueChange}>
       <TabsList className="mb-4">
         <TabsTrigger value="dashboard">
           <LayoutDashboardIcon className="h-4 w-4 mr-2" />

@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export default function SignIn() {
   const supabase = useSupabaseClient();
@@ -24,11 +24,7 @@ export default function SignIn() {
     });
     if (error) {
       console.error('Error signing in:', error.message);
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
+      toast.error(error.message);
     } else {
       router.push('/');
     }

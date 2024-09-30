@@ -1,9 +1,9 @@
 import { supabase } from "@/lib/supabase-browser";
-import { v4 as uuidv4 } from 'uuid';
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
+
 
 export const inviteUserToTeam = async (teamId: number, email: string) => {
-  const token = uuidv4();
+  const token = crypto.randomUUID();
 
   const { error } = await supabase
     .from('invitations')
@@ -13,18 +13,11 @@ export const inviteUserToTeam = async (teamId: number, email: string) => {
 
   if (error) {
     console.error('Error creating invitation:', error);
-    toast({
-      title: 'Error',
-      description: 'Failed to send invitation.',
-      variant: 'destructive',
-    });
+    toast.error('Failed to send invitation.');
     return;
   }
 
   // TODO: Integrate with an email service to send the invitation link containing the token.
 
-  toast({
-    title: 'Invitation Sent',
-    description: `An invitation has been sent to ${email}.`,
-  });
+  toast.success(`An invitation has been sent to ${email}.`);
 };

@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export default function SignUp() {
   const supabase = useSupabaseClient();
@@ -24,16 +24,9 @@ export default function SignUp() {
     });
     if (error) {
       console.error('Error signing up:', error.message);
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
+      toast.error(error.message);
     } else {
-      toast({
-        title: 'Check your email',
-        description: 'A confirmation link has been sent to your email.',
-      });
+      toast.success('A confirmation link has been sent to your email.');
       router.push('/signin');
     }
   };
