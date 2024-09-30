@@ -1,8 +1,8 @@
 // components/TeamManager.tsx
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/Button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/Dialog';
-import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { inviteUserToTeam } from '@/features/inviteUser';
 
 interface TeamManagerProps {

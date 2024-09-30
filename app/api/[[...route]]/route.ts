@@ -2,6 +2,9 @@ import { Hono } from "hono";
 import { handle } from "hono/vercel";
 
 import { HTTPException } from "hono/http-exception";
+import parseTask from "./parseTask";
+import aiSuggestion from "./aiSuggestion";
+import taskBreakdown from "./taskBreakdown";
 
 export const runtime = "edge";
 
@@ -13,7 +16,10 @@ app.onError((err, c) => {
 
   return c.json({ error: "Internal server error" }, 500);
 });
-const routes = app.route("/", );
+
+const routes = app.route("/parse", parseTask)
+  .route("/taskBreakdown", taskBreakdown)
+  .route("/aiSuggestion", aiSuggestion);
 
 export const GET = handle(routes);
 export const POST = handle(routes);

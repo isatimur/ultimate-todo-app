@@ -1,37 +1,58 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { Configuration, OpenAIApi } from 'openai';
+import { Hono } from "hono";
+import { OpenAI } from "openai";
 
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
+import { z } from "zod";
+
+export const runtime = "edge";
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// Define the schema for request validation
+const parseTaskSchema = z.object({
+  input: z.string(),
 });
-const openai = new OpenAIApi(configuration);
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { input } = req.body;
+// POST /parse
+const app = new Hono().post("/", async (c) => {
+  const body = await c.req.json();
+  const parseResult = parseTaskSchema.safeParse(body);
 
-  if (!input) {
-    res.status(400).json({ error: 'No input provided' });
-    return;
+  if (!parseResult.success) {
+    return c.json({ error: "Invalid input" }, 400);
   }
+
+  const task = parseResult.data.input;
 
   try {
     const prompt = `
       Extract the task details from the following input and return a JSON object with keys: title, due_date, priority, tags.
 
-      Input: "${input}"
+      Input: "${task}"
     `;
 
-    const response = await openai.createCompletion({
-      model: 'text-davinci-003',
-      prompt,
-      max_tokens: 150,
-      temperature: 0,
+    const response = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a helpful assistant that parse tasks into a structured format.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
     });
 
-    const data = JSON.parse(response.data.choices[0].text.trim());
-    res.status(200).json(data);
+    const parsedText = response.choices[0].message?.content?.trim();
+    const data = parsedText ? JSON.parse(parsedText) : {};
+
+    return c.json(data, 200);
   } catch (error) {
-    console.error('Error parsing task:', error);
-    res.status(500).json({ error: 'Failed to parse task' });
+    console.error("Error parsing task with OpenAI:", error);
+    return c.json({ error: "Failed to parse task" }, 500);
   }
-}
+});
+
+export default app;

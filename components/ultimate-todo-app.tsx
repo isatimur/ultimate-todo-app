@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { BarChartIcon, BellIcon, BookTemplateIcon, BrainIcon, CalendarIcon, CheckIcon, ClockIcon, EditIcon, FolderIcon, LayoutDashboardIcon, ListTodoIcon, MoonIcon, MoreVerticalIcon, PauseIcon, PlayIcon, PlusIcon, RepeatIcon, SunIcon, TimerIcon, TrashIcon } from 'lucide-react'
+import { BarChartIcon, BellIcon, BookTemplateIcon, BrainIcon, CalendarIcon, CheckIcon, ClockIcon, EditIcon, FolderIcon, LayoutDashboardIcon, ListTodoIcon, MoonIcon, MoreVerticalIcon, PauseIcon, PlayIcon, PlusIcon, RepeatIcon, SunIcon, TimerIcon, TrashIcon, Wand2Icon } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Label } from "@/components/ui/label"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts'
-import { DragDropContext, Droppable, Draggable, OnDragEndResponder } from '@hello-pangea/dnd';
+import { DragDropContext, Droppable, Draggable, OnDragEndResponder, DropResult } from '@hello-pangea/dnd';
 import { Checkbox } from "@/components/ui/checkbox"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
@@ -81,10 +81,14 @@ export default function UltimateTodoAppComponent() {
   const [activeTimer, setActiveTimer] = useState<number | null>(null)
   const [selectedProject, setSelectedProject] = useState<number | null>(null)
   const [showCompleted, setShowCompleted] = useState(true)
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [pomodoroTime, setPomodoroTime] = useState(25 * 60)
   const [isPomodoro, setIsPomodoro] = useState(false)
   const [theme, setTheme] = useState('default')
   const [aiSuggestion, setAiSuggestion] = useState('')
+  const [subtasksDialogOpen, setSubtasksDialogOpen] = useState(false);
+  const [proposedSubtasks, setProposedSubtasks] = useState<Subtask[]>([]);
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
 
   const pomodoroRef = useRef<NodeJS.Timeout | null>(null)
   const router = useRouter()
@@ -100,6 +104,7 @@ export default function UltimateTodoAppComponent() {
     if (error) {
       console.error('Error fetching tasks:', error);
     } else {
+
       console.log('Fetched tasks:', data);
       setTasks(
         data.map((task: Task) => ({
@@ -107,6 +112,11 @@ export default function UltimateTodoAppComponent() {
           due_date: task.due_date,
         }))
       );
+      const tasksWithSubtasks = data.map(task => ({
+        ...task,
+        subtasks: Array.isArray(task.subtasks) ? task.subtasks : [],
+      }));
+      setTasks(tasksWithSubtasks);
     }
   }, []);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -253,45 +263,66 @@ export default function UltimateTodoAppComponent() {
 
   const addTask = useCallback(async () => {
     if (newTask.trim() !== '') {
-      const task: Partial<Task> = {
-        title: newTask,
-        status: 'To Do',
-        priority: 'Medium',
-        due_date: new Date().toISOString(),
-        assignees: ['JD'],
-        description: '',
-        subtasks: [],
-        time_tracked: 0,
-        project: selectedProject
-          ? projects.find((p) => p.id === selectedProject)?.name || ''
-          : '',
-        tags: [],
-        dependencies: [],
-        recurrence: null,
-        importance: 0,
-        urgency: 0,
-        // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
-        user_id: user?.id!,
-      }
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { data, error } = await supabase.from('tasks').insert([task]).select();
-      if (error) {
+      try {
+        const response = await fetch('/api/parse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ input: newTask }),
+        });
+        const parsedData = await response.json();
+
+        if (response.ok) {
+          const task: Partial<Task> = {
+            title: newTask,
+            status: 'To Do',
+            priority: 'Medium',
+            due_date: new Date().toISOString(),
+            assignees: ['JD'],
+            description: '',
+            subtasks: [],
+            time_tracked: 0,
+            project: selectedProject
+              ? projects.find((p) => p.id === selectedProject)?.name || ''
+              : '',
+            tags: [],
+            dependencies: [],
+            recurrence: null,
+            importance: 0,
+            urgency: 0,
+            // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
+            user_id: user?.id!,
+          }
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { data, error } = await supabase.from('tasks').insert([task]).select();
+          if (error) {
+            console.error('Error adding task:', error);
+            toast({
+              title: 'Error',
+              description: 'Could not add task.',
+              variant: 'destructive',
+            });
+          } else {
+            console.log('Added task:', data);
+            setNewTask('');
+            fetchTasks(); // Fetch tasks after adding a new task
+            toast({
+              title: "Task added",
+              description: "Your new task has been added successfully.",
+            });
+          }
+        } else {
+          throw new Error(parsedData.error || 'Failed to parse task');
+        }
+      } catch (error) {
         console.error('Error adding task:', error);
         toast({
           title: 'Error',
           description: 'Could not add task.',
           variant: 'destructive',
         });
-      } else {
-        console.log('Added task:', data);
-        setNewTask('');
-        fetchTasks(); // Fetch tasks after adding a new task
-        toast({
-          title: "Task added",
-          description: "Your new task has been added successfully.",
-        });
       }
     }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newTask, selectedProject, projects, user]);
 
@@ -325,7 +356,7 @@ export default function UltimateTodoAppComponent() {
           description: "Your task has been updated successfully.",
         })
       }
-    }, []);
+    }, [fetchTasks]);
 
   const deleteTask = useCallback(
     async (id: number) => {
@@ -542,17 +573,40 @@ export default function UltimateTodoAppComponent() {
   }, [templates, fetchTasks])
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const getAISuggestions = useCallback(() => {
-    // This is a mock AI suggestion function. In a real app, this would call an AI service.
-    const suggestions = [
-      "Break down the 'Research and development' task into smaller subtasks",
-      "Consider increasing the priority of 'Konom web application' as the deadline is approaching",
-      "You've been spending a lot of time on 'Dashboard design'. Consider delegating some subtasks",
-      "Create a project for your personal goals and add related tasks",
-      "Use the Eisenhower Matrix to prioritize your tasks more effectively",
-    ]
-    setAiSuggestion(suggestions[Math.floor(Math.random() * suggestions.length)])
-  }, [])
+  const getAISuggestions = useCallback(async () => {
+    try {
+      const response = await fetch('/api/aiSuggestion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tasks }),
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        setAiSuggestion(data.suggestion);
+      } else {
+        throw new Error(data.error || 'Failed to get AI suggestion');
+      }
+    } catch (error) {
+      console.error('Error getting AI suggestion:', error);
+      toast({
+        title: 'Error',
+        description: 'Could not get AI suggestion.',
+        variant: 'destructive',
+      });
+    }
+  }, [tasks])
+
+  const handleSubtaskDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+
+    const reorderedSubtasks = Array.from(proposedSubtasks);
+    const [movedSubtask] = reorderedSubtasks.splice(result.source.index, 1);
+    reorderedSubtasks.splice(result.destination.index, 0, movedSubtask);
+
+    setProposedSubtasks(reorderedSubtasks);
+  };
+
 
   const applyAISuggestion = useCallback(() => {
     // This is a mock function to apply AI suggestions. In a real app, this would implement the suggestion.
@@ -562,6 +616,35 @@ export default function UltimateTodoAppComponent() {
     })
     setAiSuggestion('')
   }, [])
+
+  const generateSubtasks = async () => {
+    if (editingTask) {
+      try {
+        const response = await fetch('/api/taskBreakdown', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ taskDescription: editingTask.title }),
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+          setProposedSubtasks(data.subtasks);
+          setSubtasksDialogOpen(true);
+        } else {
+          throw new Error(data.error || 'Failed to generate subtasks');
+        }
+
+      } catch (error) {
+        console.error('Error generating subtasks:', error);
+        toast({
+          title: 'Error',
+          description: 'Could not generate subtasks.',
+          variant: 'destructive',
+        });
+      }
+    }
+  };
+
 
   const handleRecurringTasks = useCallback(async () => {
     const today = new Date()
@@ -582,6 +665,10 @@ export default function UltimateTodoAppComponent() {
     }))
   }, [projects, tasks])
 
+  const removeProposedSubtask = (index: number) => {
+    const newSubtasks = proposedSubtasks.filter((_, i) => i !== index);
+    setProposedSubtasks(newSubtasks);
+  };
 
   useEffect(() => {
     handleRecurringTasks()
@@ -589,6 +676,14 @@ export default function UltimateTodoAppComponent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+
+  useEffect(() => {
+    // This will only run on the client side
+    const storedTab = localStorage.getItem('activeTab');
+    if (storedTab) {
+      setActiveTab(storedTab);
+    }
+  }, []);
   return (
     <div className={`max-w-7xl mx-auto p-4 min-h-screen ${darkMode ? 'dark' : ''}`}>
       <div className="flex justify-between items-center mb-6">
@@ -618,7 +713,7 @@ export default function UltimateTodoAppComponent() {
         </div>
       </div>
 
-      <Tabs defaultValue="dashboard">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-4">
           <TabsTrigger value="dashboard"><LayoutDashboardIcon className="h-4 w-4 mr-2" />Dashboard</TabsTrigger>
           <TabsTrigger value="tasks"><ListTodoIcon className="h-4 w-4 mr-2" />Tasks</TabsTrigger>
@@ -837,17 +932,30 @@ export default function UltimateTodoAppComponent() {
                                 </div>
                                 <Accordion type="single" collapsible className="w-full mt-2">
                                   <AccordionItem value={`subtasks-${task.id}`}>
-                                    <AccordionTrigger>Subtasks ({task.subtasks.filter(st => st.completed).length}/{task.subtasks.length})</AccordionTrigger>
+                                    <AccordionTrigger>
+                                      Subtasks (
+                                      {Array.isArray(task?.subtasks)
+                                        ? task.subtasks.filter((st) => st.completed).length
+                                        : 0}
+                                      /
+                                      {Array.isArray(task?.subtasks)
+                                        ? task.subtasks.length
+                                        : 0}
+                                      )
+                                    </AccordionTrigger>
                                     <AccordionContent>
-                                      {task.subtasks.map(subtask => (
-                                        <div key={subtask.id} className="flex items-center space-x-2">
-                                          <Checkbox
-                                            checked={subtask.completed}
-                                            onCheckedChange={() => toggleSubtask(task.id, subtask.id)}
-                                          />
-                                          <span className={subtask.completed ? 'line-through' : ''}>{subtask.title}</span>
-                                        </div>
-                                      ))}
+                                      {Array.isArray(task?.subtasks) ? (
+                                        task.subtasks.map(subtask => (
+                                          <div key={subtask.id} className="flex items-center space-x-2">
+                                            <Checkbox
+                                              checked={subtask.completed}
+                                              onCheckedChange={() => toggleSubtask(task.id, subtask.id)}
+                                            />
+                                            <span className={subtask.completed ? 'line-through' : ''}>{subtask.title}</span>
+                                          </div>
+                                        ))) : (
+                                        <p>No subtasks available.</p>
+                                      )}
                                       <Input
                                         className="mt-2"
                                         placeholder="Add subtask"
@@ -989,15 +1097,17 @@ export default function UltimateTodoAppComponent() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={!!editingTask} onOpenChange={() => setEditingTask(null)}>
+
+
+      <Dialog open={!!editingTask}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Edit Task</DialogTitle>
           </DialogHeader>
           {editingTask && (
             <form onSubmit={(e) => {
-              e.preventDefault()
-              updateTask(editingTask)
+              e.preventDefault();
+              updateTask(editingTask!);
             }}>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -1010,6 +1120,17 @@ export default function UltimateTodoAppComponent() {
                     onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
                     className="col-span-3"
                   />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">Subtasks</Label>
+                  <Button
+                    variant="outline"
+                    className="col-span-3"
+                    onClick={generateSubtasks}
+                  >
+                    <Wand2Icon className="h-4 w-4 mr-2" />
+                    Generate Subtasks with AI
+                  </Button>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="description" className="text-right">
@@ -1149,6 +1270,9 @@ export default function UltimateTodoAppComponent() {
               </div>
               <DialogFooter>
                 <Button type="submit">Save changes</Button>
+                <Button variant="secondary" onClick={() => setEditingTask(null)}>
+                  Cancel
+                </Button>
               </DialogFooter>
             </form>
           )}
@@ -1188,6 +1312,95 @@ export default function UltimateTodoAppComponent() {
         </DialogContent>
       </Dialog>
 
+
+      <Dialog open={subtasksDialogOpen} onOpenChange={setSubtasksDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Proposed Subtasks</DialogTitle>
+          </DialogHeader>
+          <div>
+            <DragDropContext onDragEnd={(result) => {
+              if (!result.destination) return;
+              handleSubtaskDragEnd(result);
+            }}>
+              <Droppable droppableId="proposedSubtasks">
+                {(provided) => (
+                  <div ref={provided.innerRef} {...provided.droppableProps}>
+                    {Array.isArray(proposedSubtasks) && proposedSubtasks.map((subtask, index) => (
+                      <Draggable key={subtask.id.toString()} draggableId={subtask.id.toString()} index={index}>
+                        {(provided) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            className="flex items-center space-x-2 mb-2"
+                          >
+                            <Input
+                              value={subtask.title}
+                              onChange={(e) => {
+                                const newSubtasks = [...proposedSubtasks];
+                                newSubtasks[index].title = e.target.value;
+                                setProposedSubtasks(newSubtasks);
+                              }}
+                              className="flex-1"
+                            />
+                            <Button variant="ghost" size="icon" onClick={() => removeProposedSubtask(index)}>
+                              <TrashIcon className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </DragDropContext>
+          </div>
+          <Input
+            placeholder="Add new subtask"
+            value={newSubtaskTitle}
+            onChange={(e) => setNewSubtaskTitle(e.target.value)}
+            onKeyUp={(e) => {
+              if (e.key === 'Enter' && newSubtaskTitle.trim() !== '') {
+                const newSubtask = {
+                  id: Date.now(),
+                  title: newSubtaskTitle,
+                  completed: false,
+                };
+                setProposedSubtasks([...proposedSubtasks, newSubtask]);
+                setNewSubtaskTitle('');
+              }
+            }}
+          />
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                setEditingTask((prevEditingTask) => {
+                  if (prevEditingTask) {
+                    const updatedTask = {
+                      ...prevEditingTask,
+                      subtasks: proposedSubtasks,
+                    };
+                    // Save the updated task to the database
+                    updateTask(updatedTask);
+                    return updatedTask;
+                  } else {
+                    console.error('prevEditingTask is null');
+                    return prevEditingTask;
+                  }
+                });
+                setSubtasksDialogOpen(false);
+              }}
+            >
+              Save Subtasks
+            </Button>
+            <Button variant="secondary" onClick={() => setSubtasksDialogOpen(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {isPomodoro && (
         <div className="fixed bottom-4 left-4 bg-card p-4 rounded-lg shadow-lg">
           <h3 className="font-bold mb-2">Pomodoro Timer</h3>

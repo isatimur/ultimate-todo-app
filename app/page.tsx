@@ -1,7 +1,7 @@
-import UltimateTodoAppComponent from '@/components/ultimate-todo-app'
-import { redirect } from 'next/navigation';
+ååimport { redirect } from 'next/navigation';
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
+import UltimateTodoAppComponent2 from '@/components/ultima-todo-app-component';
 
 export default async function Page() {
 
@@ -20,5 +20,5 @@ export default async function Page() {
     return redirect('/signin');
   }
 
-  return <UltimateTodoAppComponent />;
+  return <UltimateTodoAppComponent2 />;
 }
