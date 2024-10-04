@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { format } from "date-fns"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 
 interface Subtask {
@@ -77,6 +77,11 @@ export default function TaskItem({
     const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
     const [editingSubtaskId, setEditingSubtaskId] = useState<number | null>(null);
     const [editedSubtaskTitle, setEditedSubtaskTitle] = useState('');
+
+    useEffect(() => {
+        setSubtasks(task.subtasks || []);
+    }, [task.subtasks]);
+
 
     const getSubtaskProgress = (subtasks: Subtask[]) => {
         const total = subtasks.length;
@@ -209,40 +214,45 @@ export default function TaskItem({
                         <Accordion type="single" collapsible>
                             <AccordionItem value={`subtasks-${task.id}`}>
                                 <AccordionTrigger>
-                                    Subtasks ({subtasks.filter((st) => st.completed).length}/{subtasks.length})
+                                    Subtasks ({task.subtasks?.filter(st => st.completed).length || 0}/
+                                    {task.subtasks?.length || 0})
                                 </AccordionTrigger>
                                 <AccordionContent>
                                     <div className="subtasks-list">
-                                        {subtasks.map((subtask) => (
-                                            <div key={subtask.id} className="flex items-center space-x-2">
-                                                <Checkbox
-                                                    checked={subtask.completed}
-                                                    onCheckedChange={() => toggleSubtask(subtask.id)}
-                                                />
-                                                {editingSubtaskId === subtask.id ? (
-                                                    <div className="flex items-center space-x-2">
-                                                        <Input
-                                                            value={editedSubtaskTitle}
-                                                            onChange={(e) => setEditedSubtaskTitle(e.target.value)}
-                                                            className="flex-1"
-                                                        />
-                                                        <Button variant="ghost" size="icon" onClick={saveEditedSubtask}>
-                                                            Save
-                                                        </Button>
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex items-center space-x-2">
-                                                        <span className={subtask.completed ? 'line-through' : ''}>{subtask.title}</span>
-                                                        <Button variant="ghost" size="icon" onClick={() => editSubtask(subtask.id)}>
-                                                            <EditIcon className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
-                                                )}
-                                                <Button variant="ghost" size="icon" onClick={() => deleteSubtask(subtask.id)}>
-                                                    <TrashIcon className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        ))}
+                                        {task.subtasks && task.subtasks.length > 0 ? (
+                                            task.subtasks.map(subtask => (
+                                                <div key={subtask.id} className="flex items-center space-x-2">
+                                                    <Checkbox
+                                                        checked={subtask.completed}
+                                                        onCheckedChange={() => toggleSubtask(subtask.id)}
+                                                    />
+                                                    {editingSubtaskId === subtask.id ? (
+                                                        <div className="flex items-center space-x-2">
+                                                            <Input
+                                                                value={editedSubtaskTitle}
+                                                                onChange={(e) => setEditedSubtaskTitle(e.target.value)}
+                                                                className="flex-1"
+                                                            />
+                                                            <Button variant="ghost" size="icon" onClick={saveEditedSubtask}>
+                                                                Save
+                                                            </Button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center space-x-2">
+                                                            <span className={subtask.completed ? 'line-through' : ''}>{subtask.title}</span>
+                                                            <Button variant="ghost" size="icon" onClick={() => editSubtask(subtask.id)}>
+                                                                <EditIcon className="h-4 w-4" />
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                    <Button variant="ghost" size="icon" onClick={() => deleteSubtask(subtask.id)}>
+                                                        <TrashIcon className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <p>Click on the wand to generate subtasks</p>
+                                        )}
                                         {/* Add new subtask input */}
                                         <div className="flex items-center space-x-2 mt-2">
                                             <Input
