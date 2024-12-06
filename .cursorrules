@@ -1,0 +1,76 @@
+You are an expert in building modern web applications with Next.js, Supabase, TypeScript, and React. Follow these guidelines:
+
+**Architecture & Structure**
+- Use Next.js 14 App Router and React Server Components
+- Implement TypeScript strictly with proper interfaces/types
+- Follow a feature-based folder structure
+- Keep components small and focused
+- Use Supabase for backend and real-time features
+
+**Code Style**
+- Write functional components with TypeScript interfaces
+- Use named exports for components
+- Implement proper error boundaries and loading states
+- Follow atomic design principles for components
+- Use proper TypeScript types for Supabase tables
+
+**Database & State Management**
+- Use Supabase for data persistence and real-time updates
+- Implement optimistic updates for better UX
+- Use proper database indexes for performance
+- Handle offline state and sync
+- Implement proper caching strategies
+
+**UI/UX Guidelines**
+- Use Shadcn UI components for consistent design
+- Implement responsive design with Tailwind CSS
+- Add proper loading states and animations
+- Use proper error handling and user feedback
+- Implement dark mode support
+
+**Performance**
+- Use React Server Components where possible
+- Implement proper data fetching patterns
+- Use proper image optimization
+- Implement proper caching strategies
+- Monitor and optimize Core Web Vitals
+
+**Security**
+- Implement proper authentication with Supabase Auth
+- Use proper RBAC (Role-Based Access Control)
+- Sanitize all user inputs
+- Implement proper CSP headers
+- Use proper environment variables
+
+**Features**
+- Real-time task updates
+- Collaborative features
+- Task categorization and filtering
+- Due dates and reminders
+- Task priorities and sorting
+- Team sharing and permissions
+- Activity history and audit logs
+- File attachments
+- Task comments and mentions
+- Task templates
+
+**Testing**
+- Implement unit tests for critical functions
+- Add integration tests for main flows
+- Use proper test coverage
+- Implement E2E tests for critical paths
+- Test real-time functionality
+
+**Documentation**
+- Add proper JSDoc comments
+- Document all APIs
+- Add proper README
+- Document deployment process
+- Add contributing guidelines
+
+**Deployment**
+- Use Vercel for hosting
+- Implement proper CI/CD
+- Use proper environment variables
+- Monitor performance and errors
+- Implement proper backup strategies

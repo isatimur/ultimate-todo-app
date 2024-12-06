@@ -6,6 +6,7 @@ import {ScrollArea} from '@/components/ui/scroll-area';
 import {usePathname} from 'next/navigation';
 import Link from 'next/link';
 import {IconCheckbox, IconFolders, IconLayoutDashboard, IconSettings, IconX,} from '@tabler/icons-react';
+import {HomeIcon, FolderIcon, UsersIcon, BarChart2Icon} from 'lucide-react';
 
 interface SidebarProps {
     open: boolean;
@@ -16,6 +17,7 @@ const navigation = [
     {name: 'Dashboard', href: '/dashboard', icon: IconLayoutDashboard},
     {name: 'Tasks', href: '/tasks', icon: IconCheckbox},
     {name: 'Projects', href: '/projects', icon: IconFolders},
+    {name: 'Teams', href: '/teams', icon: UsersIcon},
     {name: 'Settings', href: '/settings', icon: IconSettings},
 ];
 

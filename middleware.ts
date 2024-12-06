@@ -13,7 +13,8 @@ export async function middleware(req: NextRequest) {
   if (
     !session &&
     req.nextUrl.pathname !== "/signin" &&
-    req.nextUrl.pathname !== "/signup"
+    req.nextUrl.pathname !== "/signup" &&
+    req.nextUrl.pathname.startsWith('/teams')
   ) {
     return NextResponse.redirect(new URL("/signin", req.url));
   }

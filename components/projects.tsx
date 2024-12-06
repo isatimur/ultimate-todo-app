@@ -22,10 +22,12 @@ import { TaskType } from './tasks';
 export interface ProjectType {
     id: string;
     name: string;
-    user_id: string;
+    description: string | null;
     color: string;
+    user_id: string;
+    team_id?: string;
     created_at: string;
-    updated_at: string;
+    updated_at: string | null;
 }
 
 interface ProjectStats {

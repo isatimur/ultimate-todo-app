@@ -36,7 +36,8 @@ export interface TaskType {
     importance: number
     urgency: number
     user_id: string
-    created_at?: string
+    team_id?: string
+    created_at: string
 }
 
 

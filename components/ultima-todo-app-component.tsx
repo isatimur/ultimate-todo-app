@@ -16,8 +16,7 @@ import Tasks, { TasksProps } from './tasks'
 import { TaskType } from './tasks'
 import { supabase } from '@/lib/supabase-browser';
 import { ProjectsProps } from './projects';
-
-
+import { Team } from '@/types/team';
 
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
@@ -28,20 +27,14 @@ import {
     IconFolder,
     IconLayoutDashboard,
     IconSettings,
-    IconUser
+    IconUser,
+    IconUsersGroup
 } from '@tabler/icons-react';
 
 import { AnimatePresence, motion } from 'framer-motion';
 import { TooltipProvider } from './ui/tooltip';
 import { Project } from 'next/dist/build/swc';
-
-interface Team {
-    id: string;
-    name: string;
-    created_at: string | null;
-    description: string | null;
-    owner_id: string;
-}
+import TeamsView from '@/components/teams/teams-view';
 
 interface Subtask {
     id: number
@@ -113,6 +106,12 @@ export default function UltimateTodoAppComponent2() {
             href: "#profile",
             icon: <IconUser className="h-5 w-5" />,
             description: "Your account settings"
+        },
+        {
+            label: 'Teams',
+            href: "#teams",
+            icon: <IconUsersGroup className="h-5 w-5" />,
+            description: 'Manage your teams and collaborators'
         },
         {
             label: "Settings",
@@ -196,13 +195,106 @@ export default function UltimateTodoAppComponent2() {
         }
     }, []);
 
+    const fetchTeams = useCallback(async () => {
+        if (!user) return;
+        
+        try {
+            // Get all teams where user is owner
+            const { data: ownedTeams, error: ownedError } = await supabase
+                .from('teams')
+                .select('*')
+                .eq('owner_id', user.id);
+
+            if (ownedError) throw ownedError;
+
+            // Get all teams where user is a member
+            const { data: memberTeams, error: memberError } = await supabase
+                .from('team_members')
+                .select(`
+                    team:teams (
+                        id,
+                        name,
+                        description,
+                        owner_id,
+                        created_at,
+                        updated_at
+                    )
+                `)
+                .eq('user_id', user.id);
+
+            if (memberError) throw memberError;
+
+            // Combine and deduplicate teams
+            const allTeams = [
+                ...(ownedTeams || []),
+                ...(memberTeams?.map(m => m.team).filter(Boolean) || [])
+            ];
+            const uniqueTeams = Array.from(new Map(allTeams.map(team => [team.id, team])).values());
+
+            if (!uniqueTeams.length) {
+                setTeams([]);
+                return;
+            }
+
+            // Get members with their profiles for all teams
+            const { data: teamMembers, error: membersError } = await supabase
+                .from('team_members')
+                .select(`
+                    id,
+                    team_id,
+                    user_id,
+                    role,
+                    joined_at,
+                    profiles!team_members_user_id_profiles_fkey (
+                        email,
+                        full_name,
+                        avatar_url
+                    )
+                `)
+                .in('team_id', uniqueTeams.map(t => t.id));
+
+            if (membersError) throw membersError;
+
+            if (teamMembers) {
+                const { data: profiles } = await supabase
+                    .from('profiles')
+                    .select(`
+                        id,
+                        email,
+                        full_name,
+                        avatar_url
+                    `)
+                    .in('id', teamMembers.map(member => member.user_id));
+
+                const membersWithProfiles = teamMembers.map(member => ({
+                    ...member,
+                    profile: profiles?.find(profile => profile.id === member.user_id)
+                }));
+
+                const formattedTeams = uniqueTeams.map(team => ({
+                    ...team,
+                    members: membersWithProfiles?.filter(m => m.team_id === team.id) || []
+                }));
+
+                setTeams(formattedTeams);
+            }
+
+        } catch (error) {
+            console.error('Error fetching teams:', error);
+            toast.error('Failed to fetch teams');
+        }
+    }, [user]);
+
     const fetchData = useCallback(async () => {
         if (user) {
-            await Promise.all([fetchTasks(), fetchProjects(), fetchTemplates()]);
+            await Promise.all([
+                fetchTasks(),
+                fetchProjects(),
+                fetchTemplates(),
+                fetchTeams()
+            ]);
         }
-
-
-    }, [user, fetchTasks, fetchProjects, fetchTemplates]);
+    }, [user, fetchTasks, fetchProjects, fetchTemplates, fetchTeams]);
 
     useEffect(() => {
         const { data: authListener } = supabase.auth.onAuthStateChange(
@@ -664,6 +756,119 @@ export default function UltimateTodoAppComponent2() {
         projects
     };
 
+    const handleCreateTeam = async (name: string, description: string) => {
+        if (!user) return;
+
+        try {
+            const { data: team, error: teamError } = await supabase
+                .from('teams')
+                .insert({
+                    name,
+                    description,
+                    owner_id: user.id,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                })
+                .select()
+                .single();
+
+            if (teamError) throw teamError;
+
+            const { error: memberError } = await supabase
+                .from('team_members')
+                .insert({
+                    team_id: team.id,
+                    user_id: user.id,
+                    role: 'owner',
+                    joined_at: new Date().toISOString()
+                });
+
+            if (memberError) {
+                await supabase.from('teams').delete().eq('id', team.id);
+                throw memberError;
+            }
+
+            await fetchTeams();
+            toast.success('Team created successfully');
+        } catch (error) {
+            console.error('Error creating team:', error);
+            toast.error('Failed to create team');
+        }
+    };
+
+    const handleInviteMember = async (teamId: string, email: string, role: string) => {
+        try {
+            const { error } = await supabase
+                .from('team_invitations')
+                .insert({
+                    team_id: teamId,
+                    email,
+                    role,
+                    status: 'pending',
+                    invited_at: new Date().toISOString(),
+                    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
+                });
+
+            if (error) throw error;
+
+            toast.success('Invitation sent successfully');
+        } catch (error) {
+            console.error('Error inviting member:', error);
+            toast.error('Failed to invite member');
+        }
+    };
+
+    const handleRemoveMember = async (teamId: string, userId: string) => {
+        const { error } = await supabase
+            .from('team_members')
+            .delete()
+            .eq('team_id', teamId)
+            .eq('user_id', userId);
+
+        if (error) {
+            console.error('Error removing member:', error);
+            toast.error('Failed to remove member');
+            return;
+        }
+
+        fetchTeams();
+        toast.success('Member removed successfully');
+    };
+
+    const handleCancelInvitation = async (invitationId: string) => {
+        try {
+            const { error } = await supabase
+                .from('team_invitations')
+                .delete()
+                .eq('id', invitationId);
+
+            if (error) throw error;
+            toast.success('Invitation cancelled successfully');
+            fetchTeams(); // Refresh teams data
+        } catch (error) {
+            console.error('Error cancelling invitation:', error);
+            toast.error('Failed to cancel invitation');
+        }
+    };
+
+    const handleResendInvitation = async (invitationId: string) => {
+        try {
+            const { error } = await supabase
+                .from('team_invitations')
+                .update({ 
+                    invited_at: new Date().toISOString(),
+                    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
+                })
+                .eq('id', invitationId);
+
+            if (error) throw error;
+            toast.success('Invitation resent successfully');
+        } catch (error) {
+            console.error('Error resending invitation:', error);
+            toast.error('Failed to resend invitation');
+        }
+    };
+
     return (
         <TooltipProvider delayDuration={0}>
             <div className="min-h-screen flex bg-background">
@@ -756,6 +961,19 @@ export default function UltimateTodoAppComponent2() {
                             {activeTab === 'analytics' && <Analytics user={user} {...analyticsProps} />}
                             {activeTab === 'profile' && <Profile user={user} />}
                             {activeTab === 'settings' && <Settings user={user} />}
+                            {activeTab === 'teams' && (
+                                <TeamsView
+                                    teams={teams as Team[]}
+                                    currentUser={{ id: user?.id || '', email: user?.email || '' }}
+                                    tasks={tasks}
+                                    projects={projects}
+                                    onCreateTeam={handleCreateTeam}
+                                    onInviteMember={handleInviteMember}
+                                    onRemoveMember={handleRemoveMember}
+                                    onCancelInvitation={handleCancelInvitation}
+                                    onResendInvitation={handleResendInvitation}
+                                />
+                            )}
                         </motion.div>
                     </AnimatePresence>
                 </motion.main>

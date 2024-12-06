@@ -568,32 +568,3 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
     ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
-
-export interface Profile {
-  id: string;
-  email: string;
-  full_name?: string;
-  username?: string;
-  avatar_url?: string;
-  bio?: string;
-  location?: string;
-  website?: string;
-  job_title?: string;
-  company?: string;
-  phone?: string;
-  date_of_birth?: string;
-  social_links?: {
-    github?: string;
-    linkedin?: string;
-    twitter?: string;
-    instagram?: string;
-  };
-  skills?: string[];
-  privacy_settings?: {
-    show_email: boolean;
-    show_phone: boolean;
-    profile_visibility: 'public' | 'private' | 'friends_only';
-  };
-  created_at?: string;
-  updated_at?: string;
-}

@@ -1,31 +1,69 @@
-import {toast} from "sonner";
-import {supabase} from "@/lib/supabase-browser";
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Team } from '@/types/team';
 
-export const inviteMember = async (teamId: string, email: string) => {
-    const token = generateUniqueToken();
-    const {data, error} = await supabase
-        .from('invitations')
-        .insert([
-            {
-                team_id: teamId,
-                email: email,
-                token: token,
-                status: 'Pending',
-                invited_at: new Date().toISOString(),
-            },
-        ])
-        .select();
+interface InviteMemberDialogProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    team: Team;
+    onInviteMember: (teamId: string, email: string, role: string) => Promise<void>;
+}
 
-    if (error) {
-        console.error('Error sending invitation:', error);
-        toast.error('Could not send invitation.');
-    } else {
-        // Optionally send an email to the user with the invitation link
-        toast.success(`An invitation has been sent to ${data[0].email}.`);
-    }
-};
+export default function InviteMemberDialog({
+    open,
+    onOpenChange,
+    team,
+    onInviteMember,
+}: InviteMemberDialogProps) {
+    const [email, setEmail] = useState('');
+    const [role, setRole] = useState('member');
+    const [isLoading, setIsLoading] = useState(false);
 
-function generateUniqueToken() {
-    throw new Error("Function not implemented.");
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsLoading(true);
+        try {
+            await onInviteMember(team.id, email, role);
+            onOpenChange(false);
+            setEmail('');
+            setRole('member');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Invite Team Member</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <Input
+                        type="email"
+                        placeholder="Email Address"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                    />
+                    <Select value={role} onValueChange={setRole}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select Role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="member">Member</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Button type="submit" disabled={isLoading}>
+                        {isLoading ? 'Inviting...' : 'Send Invitation'}
+                    </Button>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
 }
 

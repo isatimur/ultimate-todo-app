@@ -10,6 +10,7 @@ import { ThemeSwitcherButton } from './themeswitcher';
 import { Avatar, AvatarImage, AvatarFallback } from './avatar';
 import { User } from '@supabase/supabase-js';
 import Image from 'next/image';
+import Link from 'next/link';
 
 const sidebarVariants = {
     open: {
@@ -167,70 +168,36 @@ export function Sidebar({ open, setOpen, children, className, user }: SidebarPro
 
 interface SidebarLinkProps {
     link: {
-        icon: React.ReactNode;
         label: string;
-        description?: string;
+        href: string;
+        icon: React.ReactNode;
+        description: string;
     };
     isActive: boolean;
-    onClick: () => void;
     collapsed: boolean;
+    onClick: () => void;
 }
 
-export function SidebarLink({ link, isActive, onClick, collapsed }: SidebarLinkProps) {
-    const buttonContent = (
-        <Button
-            variant={isActive ? "secondary" : "ghost"}
+export function SidebarLink({ link, isActive, collapsed, onClick }: SidebarLinkProps) {
+    const isExternalLink = link.href.startsWith('/');
+
+    return (
+        <Link
+            href={link.href}
             className={cn(
-                "relative w-full h-11",
-                "flex items-center gap-3",
-                collapsed ? "justify-center px-2" : "justify-start px-3",
-                isActive && "bg-primary/10 text-primary hover:bg-primary/20"
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                'hover:bg-accent hover:text-accent-foreground',
+                isActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'
             )}
-            onClick={onClick}
+            onClick={(e) => {
+                if (!isExternalLink) {
+                    e.preventDefault();
+                    onClick();
+                }
+            }}
         >
-            <div className="flex items-center gap-3">
-                {link.icon}
-                {!collapsed && (
-                    <motion.span
-                        variants={itemVariants}
-                        className="text-sm font-medium"
-                    >
-                        {link.label}
-                    </motion.span>
-                )}
-            </div>
-            {isActive && (
-                <motion.div
-                    layoutId="activeTab"
-                    className="absolute inset-y-0 left-0 w-1 bg-primary rounded-r-full"
-                />
-            )}
-        </Button>
+            {link.icon}
+            {!collapsed && <span>{link.label}</span>}
+        </Link>
     );
-
-    if (collapsed) {
-        return (
-            <TooltipProvider delayDuration={0}>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        {buttonContent}
-                    </TooltipTrigger>
-                    <TooltipContent
-                        side="right"
-                        className="flex flex-col gap-1"
-                        sideOffset={20}
-                    >
-                        <p className="font-medium">{link.label}</p>
-                        {link.description && (
-                            <p className="text-xs text-muted-foreground">
-                                {link.description}
-                            </p>
-                        )}
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
-        );
-    }
-
-    return buttonContent;
 }
