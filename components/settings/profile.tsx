@@ -9,7 +9,7 @@ import { Textarea } from '../ui/textarea';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase-browser';
 import { IconUpload } from '@tabler/icons-react';
-import { Profile } from '@/lib/database.types';
+import { Profile as ProfileType } from '@/lib/database.types';
 interface ProfileProps {
     user: User | null;
 }
@@ -17,7 +17,7 @@ interface ProfileProps {
 
 
 export default function Profile({ user }: ProfileProps) {
-    const [profile, setProfile] = useState<Profile>({} as Profile);
+    const [profile, setProfile] = useState<ProfileType>({} as ProfileType);
     const [loading, setLoading] = useState(true);
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
 

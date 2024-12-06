@@ -11,8 +11,9 @@ import Analytics from './analytics';
 import Dashboard from './dashboard';
 import Profile from './profile';
 import Settings from './settings';
-import Projects, { ProjectP } from './projects';
-import Tasks from './tasks';
+import Projects, { ProjectType } from './projects';
+import Tasks, { TasksProps } from './tasks'
+import { TaskType } from './tasks'
 import { supabase } from '@/lib/supabase-browser';
 import { ProjectsProps } from './projects';
 
@@ -48,41 +49,21 @@ interface Subtask {
     completed: boolean
 }
 
-interface Task {
-    id: number
-    title: string
-    status: 'To Do' | 'In Progress' | 'In Review' | 'Complete'
-    priority: 'Low' | 'Medium' | 'High' | 'Urgent'
-    due_date: string
-    assignees: string[]
-    description: string
-    subtasks: Subtask[]
-    time_tracked: number
-    project: string
-    tags: string[]
-    dependencies: number[]
-    recurrence: string | null
-    importance: number
-    urgency: number
-    user_id: string
-    created_at?: string
-}
-
 interface Template {
     id: number
     name: string
-    tasks: Omit<Task, 'id' | 'timeTracked'>[]
+    tasks: Omit<TaskType, 'id' | 'time_tracked'>[]
     user_id: string
 }
 
 export default function UltimateTodoAppComponent2() {
     // Global state variables
     const [user, setUser] = useState<User | null>(null)
-    const [tasks, setTasks] = useState<Task[]>([])
-    const [projects, setProjects] = useState<ProjectP[]>([])
+    const [tasks, setTasks] = useState<TaskType[]>([])
+    const [projects, setProjects] = useState<ProjectType[]>([])
     const [templates, setTemplates] = useState<Template[]>([])
     const [newTask, setNewTask] = useState('')
-    const [editingTask, setEditingTask] = useState<Task | null>(null)
+    const [editingTask, setEditingTask] = useState<TaskType | null>(null)
     const [activeTimer, setActiveTimer] = useState<number | null>(null)
     const [selectedProject] = useState<number | null>(null)
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -165,7 +146,7 @@ export default function UltimateTodoAppComponent2() {
 
             console.log('Fetched tasks:', data);
             setTasks(
-                data.map((task: Task) => ({
+                data.map((task: TaskType) => ({
                     ...task,
                     due_date: task.due_date,
                 }))
@@ -190,7 +171,7 @@ export default function UltimateTodoAppComponent2() {
                 console.error('Error fetching projects:', error);
             } else {
                 console.log('Fetched projects:', data);
-                setProjects(data as ProjectP[]);
+                setProjects(data as ProjectType[]);
             }
         } catch (error) {
             console.error('Unexpected error fetching projects:', error);
@@ -281,7 +262,7 @@ export default function UltimateTodoAppComponent2() {
                 const parsedData = await response.json();
 
                 if (response.ok) {
-                    const task: Partial<Task> = {
+                    const task: Partial<TaskType> = {
                         title: title,
                         status: 'To Do',
                         priority: 'Medium',
@@ -291,14 +272,13 @@ export default function UltimateTodoAppComponent2() {
                         subtasks: [],
                         time_tracked: 0,
                         project: selectedProject
-                            ? projects.find((p) => p.id === selectedProject)?.name || ''
+                            ? projects.find((p) => p.id.toString() === selectedProject.toString())?.name || ''
                             : '',
                         tags: [],
                         dependencies: [],
                         recurrence: null,
                         importance: 0,
                         urgency: 0,
-                        // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
                         user_id: user?.id!,
                     }
 
@@ -335,9 +315,8 @@ export default function UltimateTodoAppComponent2() {
     }, [addTask, newTask])
 
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const updateTask = useCallback(
-        async (updatedTask: Task) => {
+        async (updatedTask: TaskType) => {
             const { error } = await supabase
                 .from('tasks')
                 .update(updatedTask)
@@ -385,7 +364,7 @@ export default function UltimateTodoAppComponent2() {
     }, [fetchTasks, tasks])
 
     const getStatusCount = useMemo(() =>
-        (status: Task['status']) => tasks.filter(t => t.status === status).length,
+        (status: TaskType['status']) => tasks.filter(t => t.status === status).length,
         [tasks]);
 
 
@@ -463,7 +442,7 @@ export default function UltimateTodoAppComponent2() {
         if (error) {
             console.error('Error updating project:', error)
         } else {
-            setProjects(prevProjects => prevProjects.map(p => p.id === id ? data[0] : p))
+            setProjects(prevProjects => prevProjects.map(p => p.id.toString() === id.toString() ? data[0] : p))
             toast.success(`Project "${name}" has been updated successfully.`);
         }
 
@@ -478,16 +457,15 @@ export default function UltimateTodoAppComponent2() {
         if (error) {
             console.error('Error deleting project:', error)
         } else {
-            setProjects(prevProjects => prevProjects.filter(p => p.id !== id))
+            setProjects(prevProjects => prevProjects.filter(p => p.id.toString() !== id.toString()))
             toast.success("Your project has been deleted successfully.");
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user])
 
-    const addTemplate = useCallback(async (name: string, tasks: Omit<Task, 'id' | 'timeTracked'>[]) => {
+    const addTemplate = useCallback(async (name: string, tasks: Omit<TaskType, 'id' | 'time_tracked'>[]) => {
         const { data, error } = await supabase
             .from('templates')
-            // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
             .insert([{ name, tasks, user_id: user?.id! }])
             .select()
         if (error) {
@@ -506,7 +484,7 @@ export default function UltimateTodoAppComponent2() {
                 id: Date.now() + Math.random(),
                 timeTracked: 0,
             }))
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
             const { error } = await supabase
                 .from('tasks')
                 .insert(newTasks)
@@ -519,7 +497,6 @@ export default function UltimateTodoAppComponent2() {
         }
     }, [templates, fetchTasks])
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const getAISuggestions = useCallback(async () => {
         try {
             const response = await fetch('/api/aiSuggestion', {
@@ -620,7 +597,7 @@ export default function UltimateTodoAppComponent2() {
         }
     };
 
-    const tasksProps = {
+    const tasksProps: TasksProps = {
         taskList: tasks,
         projects,
         addTask,
@@ -652,7 +629,7 @@ export default function UltimateTodoAppComponent2() {
 
             setProjects([...projects, data]);
         },
-        updateProject: async (id: number, name: string, color: string, description: string) => {
+        updateProject: async (id: string, name: string, color: string, description: string) => {
             const { error } = await supabase
                 .from('projects')
                 .update({ name, color, description })
@@ -663,9 +640,9 @@ export default function UltimateTodoAppComponent2() {
                 return;
             }
 
-            setProjects(projects.map(p => p.id === id ? { ...p, name, color, description } : p));
+            setProjects(projects.map(p => p.id.toString() === id.toString() ? { ...p, name, color, description } : p));
         },
-        deleteProject: async (id: number) => {
+        deleteProject: async (id: string) => {
             const { error } = await supabase
                 .from('projects')
                 .delete()
@@ -676,7 +653,7 @@ export default function UltimateTodoAppComponent2() {
                 return;
             }
 
-            setProjects(projects.filter(p => p.id !== id));
+            setProjects(projects.filter(p => p.id.toString() !== id.toString()));
         }
     };
 

@@ -17,21 +17,15 @@ import { DotsPattern } from './ui/dotspattern';
 import { toast } from 'sonner';
 import { Progress } from './ui/progress';
 import { format } from 'date-fns';
+import { TaskType } from './tasks';
 
-export interface ProjectP {
+export interface ProjectType {
     id: string;
     name: string;
+    user_id: string;
     color: string;
     created_at: string;
     updated_at: string;
-}
-
-export interface TaskP {
-    id: string;
-    project: string;
-    status: string;
-    time_tracked?: number;
-    created_at: string;
 }
 
 interface ProjectStats {
@@ -39,12 +33,12 @@ interface ProjectStats {
     completed: number;
     progress: number;
     timeTracked: number;
-    recentActivity: TaskP | null;
+    recentActivity: TaskType | null;
 }
 
 export interface ProjectsProps {
-    projects: ProjectP[];
-    tasks: TaskP[];
+    projects: ProjectType[];
+    tasks: TaskType[];
     addProject: (name: string, color: string, description: string) => Promise<void>;
     updateProject: (id: string, name: string, color: string, description: string) => Promise<void>;
     deleteProject: (id: string) => Promise<void>;
@@ -59,7 +53,7 @@ export default function Projects({
 }: ProjectsProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
-    const [editingProject, setEditingProject] = useState<ProjectP | null>(null);
+    const [editingProject, setEditingProject] = useState<ProjectType | null>(null);
     const [newProjectName, setNewProjectName] = useState('');
     const [newProjectColor, setNewProjectColor] = useState('#ffffff');
     const [newProjectDescription, setNewProjectDescription] = useState('');
@@ -136,7 +130,7 @@ export default function Projects({
         }
     };
 
-    const handleEditButtonClick = (project: ProjectP, e: React.MouseEvent) => {
+    const handleEditButtonClick = (project: ProjectType, e: React.MouseEvent) => {
         e.stopPropagation();
         setEditingProject(project);
         setEditedProjectName(project.name);
@@ -334,7 +328,7 @@ export default function Projects({
 }
 
 
-function ProjectCard({ project, stats, onEdit, onDelete }: { project: ProjectP, stats: ProjectStats, onEdit: (e: React.MouseEvent) => void, onDelete: (e: React.MouseEvent) => void }) {
+function ProjectCard({ project, stats, onEdit, onDelete }: { project: ProjectType, stats: ProjectStats, onEdit: (e: React.MouseEvent) => void, onDelete: (e: React.MouseEvent) => void }) {
     return (
         <Card
             className="relative overflow-hidden hover:shadow-lg transition-all cursor-pointer group"
@@ -384,7 +378,7 @@ function ProjectCard({ project, stats, onEdit, onDelete }: { project: ProjectP, 
     );
 }
 
-function ProjectListItem({ project, stats, onEdit, onDelete }: { project: ProjectP, stats: ProjectStats, onEdit: (e: React.MouseEvent) => void, onDelete: (e: React.MouseEvent) => void }) {
+function ProjectListItem({ project, stats, onEdit, onDelete }: { project: ProjectType, stats: ProjectStats, onEdit: (e: React.MouseEvent) => void, onDelete: (e: React.MouseEvent) => void }) {
     return (
         <div className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-all">
             <div className="flex items-center space-x-4">

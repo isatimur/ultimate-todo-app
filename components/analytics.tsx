@@ -23,6 +23,8 @@ import { motion } from 'framer-motion';
 import { IconChartBar, IconChartLine, IconChartPie } from '@tabler/icons-react';
 import { supabase } from '@/lib/supabase-browser';
 import { User } from '@supabase/supabase-js';
+import { TaskType } from '@/components/tasks'
+import { ProjectType } from '@/components/projects'
 
 interface AnalyticsProps {
     user: User | null;
@@ -38,17 +40,6 @@ interface TimeEntry {
     description: string;
 }
 
-interface Task {
-    id: string;
-    title: string;
-    status: string;
-    created_at: string;
-}
-
-interface Project {
-    id: string;
-    name: string;
-}
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042'];
 
@@ -57,9 +48,9 @@ export default function Analytics({ user }: AnalyticsProps) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [analyticsData, setAnalyticsData] = useState<{
-        tasks: Task[];
+        tasks: TaskType[];
         timeEntries: TimeEntry[];
-        projects: Project[];
+        projects: ProjectType[];
     }>({
         tasks: [],
         timeEntries: [],
@@ -141,10 +132,10 @@ export default function Analytics({ user }: AnalyticsProps) {
 
         // Process productivity data
         const productivityData = projects.map(project => {
-            const projectTasks = tasks.filter(task => task.project_id === project.id);
-            const completedTasks = projectTasks.filter(task => task.status === 'completed');
+            const projectTasks = tasks.filter(task => task.project.toString() === project.id.toString());
+            const completedTasks = projectTasks.filter(task => task.status === 'Complete');
             const projectTime = timeEntries
-                .filter(entry => entry.project_id === project.id)
+                .filter(entry => entry.project_id.toString() === project.id.toString())
                 .reduce((sum, entry) => sum + (entry.duration || 0), 0);
 
             return {
@@ -159,10 +150,10 @@ export default function Analytics({ user }: AnalyticsProps) {
         return {
             productivityData,
             totalTasks: tasks.length,
-            completedTasks: tasks.filter(task => task.status === 'completed').length,
+            completedTasks: tasks.filter(task => task.status === 'Complete').length,
             totalTime: Math.round(timeEntries.reduce((sum, entry) => sum + (entry.duration || 0), 0) / 60),
             efficiency: tasks.length ?
-                (tasks.filter(task => task.status === 'completed').length / tasks.length) * 100 : 0
+                (tasks.filter(task => task.status === 'Complete').length / tasks.length) * 100 : 0
         };
     };
 
@@ -184,7 +175,11 @@ export default function Analytics({ user }: AnalyticsProps) {
 
     const data = processData();
 
-    const CustomTooltip = ({ active, payload, label }: { active: boolean, payload: any[], label: string }) => {
+    const CustomTooltip = ({ active, payload, label }: {
+        active?: boolean;
+        payload?: any[];
+        label?: string;
+    }) => {
         if (active && payload && payload.length) {
             return (
                 <div className="bg-background border rounded-lg p-4 shadow-lg">
@@ -302,9 +297,9 @@ export default function Analytics({ user }: AnalyticsProps) {
                             <ResponsiveContainer width="100%" height={400}>
                                 <LineChart data={data.productivityData}>
                                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                                    <XAxis 
-                                        dataKey="name" 
-                                        className="text-sm" 
+                                    <XAxis
+                                        dataKey="name"
+                                        className="text-sm"
                                     />
                                     <YAxis className="text-sm" />
                                     <Tooltip content={<CustomTooltip />} />
@@ -351,9 +346,9 @@ export default function Analytics({ user }: AnalyticsProps) {
                             <ResponsiveContainer width="100%" height={400}>
                                 <BarChart data={data.productivityData}>
                                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                                    <XAxis 
-                                        dataKey="name" 
-                                        className="text-sm" 
+                                    <XAxis
+                                        dataKey="name"
+                                        className="text-sm"
                                     />
                                     <YAxis className="text-sm" />
                                     <Tooltip content={<CustomTooltip />} />

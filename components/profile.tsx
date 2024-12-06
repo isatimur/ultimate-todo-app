@@ -39,6 +39,7 @@ interface UserProfile {
     privacy_settings: {
         show_email?: boolean;
         show_phone?: boolean;
+        profile_visibility?: 'public' | 'private';
     };
 }
 
@@ -89,7 +90,7 @@ export default function Profile({user}: ProfileProps) {
             if (data) {
                 setProfile(data);
             } else {
-                const initialProfile = {
+                const initialProfile: UserProfile = {
                     id: user.id,
                     email: user.email || '',
                     full_name: user.user_metadata?.full_name || '',
@@ -110,7 +111,7 @@ export default function Profile({user}: ProfileProps) {
                     privacy_settings: {
                         show_email: true,
                         show_phone: false,
-                        profile_visibility: 'public'
+                        profile_visibility: 'public' as const
                     }
                 };
 
@@ -177,9 +178,9 @@ export default function Profile({user}: ProfileProps) {
             }
 
             const updates = {
+                ...updatedProfile,
                 id: user?.id,
                 email: user?.email || '',
-                ...updatedProfile,
                 updated_at: new Date().toISOString(),
                 privacy_settings: updatedProfile.privacy_settings || {
                     show_email: true,

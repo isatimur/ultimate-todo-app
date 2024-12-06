@@ -29,8 +29,8 @@ export default function GeneralSettings() {
                 <Label>Session Length (minutes)</Label>
                 <Input
                   type="number"
-                  value={settings.pomodoroLength}
-                  onChange={(e) => updateSettings({ pomodoroLength: parseInt(e.target.value) })}
+                  value={settings.pomodoro_length}
+                  onChange={(e) => updateSettings({ pomodoro_length: parseInt(e.target.value) })}
                   min={1}
                   max={60}
                   className="max-w-[200px]"
@@ -45,8 +45,8 @@ export default function GeneralSettings() {
                   </p>
                 </div>
                 <Switch
-                  checked={settings.autoBreak}
-                  onCheckedChange={(checked) => updateSettings({ autoBreak: checked })}
+                  checked={settings.auto_break}
+                  onCheckedChange={(checked) => updateSettings({ auto_break: checked })}
                 />
               </div>
 
@@ -58,8 +58,8 @@ export default function GeneralSettings() {
                   </p>
                 </div>
                 <Switch
-                  checked={settings.soundEnabled}
-                  onCheckedChange={(checked) => updateSettings({ soundEnabled: checked })}
+                  checked={settings.sound_enabled}
+                  onCheckedChange={(checked) => updateSettings({ sound_enabled: checked })}
                 />
               </div>
             </div>
@@ -82,8 +82,8 @@ export default function GeneralSettings() {
                 </p>
               </div>
               <Switch
-                checked={settings.emailNotifications}
-                onCheckedChange={(checked) => updateSettings({ emailNotifications: checked })}
+                checked={settings.email_notifications}
+                onCheckedChange={(checked) => updateSettings({ email_notifications: checked })}
               />
             </div>
 
@@ -95,8 +95,8 @@ export default function GeneralSettings() {
                 </p>
               </div>
               <Switch
-                checked={settings.pushNotifications}
-                onCheckedChange={(checked) => updateSettings({ pushNotifications: checked })}
+                checked={settings.push_notifications}
+                onCheckedChange={(checked) => updateSettings({ push_notifications: checked })}
               />
             </div>
           </CardContent>

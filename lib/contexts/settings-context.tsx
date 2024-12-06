@@ -111,7 +111,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
             if (error) throw error;
             toast.success('Settings updated successfully');
-        } catch (error) {
+        } catch (error: unknown) {
             toast.error('Failed to update settings');
         }
     }

@@ -59,8 +59,8 @@ export default function AccountPage() {
             if (error) throw error;
             toast.success('Password updated successfully');
             setUserData(prev => ({ ...prev, newPassword: '', confirmPassword: '' }));
-        } catch (error: any) {
-            toast.error(error.message);
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : 'An unknown error occurred');
         } finally {
             setLoading(false);
         }
@@ -79,8 +79,8 @@ export default function AccountPage() {
             await supabase.auth.signOut();
             router.push('/signin');
             toast.success('Account deleted successfully');
-        } catch (error: any) {
-            toast.error(error.message);
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : 'An unknown error occurred');
         } finally {
             setLoading(false);
         }
