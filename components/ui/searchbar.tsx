@@ -1,12 +1,12 @@
 'use client'
 
-import { cn } from "@/lib/utils";
-import { SearchIcon } from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import {cn} from "@/lib/utils";
+import {SearchIcon} from "lucide-react";
+import {useEffect, useState} from "react";
+import {toast} from "sonner";
 
 
-export const SearchBar = ({ search, setSearch }: { search: string, setSearch: (search: string) => void }) => {
+export const SearchBar = ({search, setSearch}: { search: string, setSearch: (search: string) => void }) => {
 
     const [searchSubmittedOutline, setSearchSubmittedOutline] = useState(false);
     const [searchSubmittedShadow, setSearchSubmittedShadow] = useState(false);
@@ -86,7 +86,8 @@ export const SearchBar = ({ search, setSearch }: { search: string, setSearch: (s
                 type="search"
                 value={search}
             />
-            <SearchIcon className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3.5 size-5 text-neutral-300 transition-colors peer-focus:text-neutral-500 dark:text-neutral-700" />
+            <SearchIcon
+                className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3.5 size-5 text-neutral-300 transition-colors peer-focus:text-neutral-500 dark:text-neutral-700"/>
         </label>
     );
 };

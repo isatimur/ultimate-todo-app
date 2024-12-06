@@ -1,79 +1,53 @@
+'use client';
+
+import { useState, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useMemo, useState } from 'react';
-import { TrashIcon, EditIcon, Circle, CheckCircle } from 'lucide-react';
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-} from './ui/dialog';
-import {
-    Select,
-    SelectTrigger,
-    SelectContent,
-    SelectItem,
-    SelectValue,
-} from './ui/select';
+    CheckCircle, Circle, EditIcon, TrashIcon,
+    FolderIcon, GridIcon, ListIcon
+} from 'lucide-react';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Badge } from './ui/badge';
 import { HexColorPicker } from 'react-colorful';
 import { cn } from '@/lib/utils';
 import { DotsPattern } from './ui/dotspattern';
 import { toast } from 'sonner';
+import { Progress } from './ui/progress';
+import { format } from 'date-fns';
 
-interface Subtask {
-    id: number;
-    title: string;
-    completed: boolean;
-}
-
-interface Task {
-    id: number;
-    title: string;
-    status: 'To Do' | 'In Progress' | 'In Review' | 'Complete';
-    priority: 'Low' | 'Medium' | 'High' | 'Urgent';
-    due_date: string;
-    assignees: string[];
-    description: string;
-    subtasks: Subtask[];
-    time_tracked: number;
-    project: string;
-    tags: string[];
-    dependencies: number[];
-    recurrence: string | null;
-    importance: number;
-    urgency: number;
-    user_id: string;
-    created_at?: string;
-}
-
-interface Project {
-    id: number;
+export interface ProjectP {
+    id: string;
     name: string;
     color: string;
-    user_id: string;
-    description?: string;
-    created_at?: string;
-    updated_at?: string;
+    created_at: string;
+    updated_at: string;
 }
 
-interface ProjectsProps {
-    projects: Project[];
-    tasks: Task[];
-    addProject: (
-        name: string,
-        color: string,
-        description: string
-    ) => Promise<void>;
-    updateProject: (
-        id: number,
-        name: string,
-        color: string,
-        description: string
-    ) => Promise<void>;
-    deleteProject: (id: number) => Promise<void>;
+export interface TaskP {
+    id: string;
+    project: string;
+    status: string;
+    time_tracked?: number;
+    created_at: string;
+}
+
+interface ProjectStats {
+    total: number;
+    completed: number;
+    progress: number;
+    timeTracked: number;
+    recentActivity: TaskP | null;
+}
+
+export interface ProjectsProps {
+    projects: ProjectP[];
+    tasks: TaskP[];
+    addProject: (name: string, color: string, description: string) => Promise<void>;
+    updateProject: (id: string, name: string, color: string, description: string) => Promise<void>;
+    deleteProject: (id: string) => Promise<void>;
 }
 
 export default function Projects({
@@ -83,41 +57,68 @@ export default function Projects({
     updateProject,
     deleteProject,
 }: ProjectsProps) {
-    // State variables for adding a new project
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
+    const [editingProject, setEditingProject] = useState<ProjectP | null>(null);
     const [newProjectName, setNewProjectName] = useState('');
     const [newProjectColor, setNewProjectColor] = useState('#ffffff');
     const [newProjectDescription, setNewProjectDescription] = useState('');
-    const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
-    const [loadingAddProject, setLoadingAddProject] = useState(false);
-
-    // State variables for editing a project
-    const [editingProject, setEditingProject] = useState<Project | null>(null);
     const [editedProjectName, setEditedProjectName] = useState('');
-    const [editedProjectColor, setEditedProjectColor] = useState('#000000');
+    const [editedProjectColor, setEditedProjectColor] = useState('#ffffff');
     const [editedProjectDescription, setEditedProjectDescription] = useState('');
+    const [loadingAddProject, setLoadingAddProject] = useState(false);
     const [loadingEditProject, setLoadingEditProject] = useState(false);
+    const [view, setView] = useState<'grid' | 'list'>('grid');
+    const [sortBy, setSortBy] = useState<'name' | 'progress' | 'tasks' | 'recent'>('recent');
 
-    // State variables for deleting a project
-    const [confirmDeleteProjectId, setConfirmDeleteProjectId] = useState<number | null>(
-        null
-    );
+    const getProjectStats = useCallback((projectName: string) => {
+        const projectTasks = tasks.filter((t) => t.project === projectName);
+        const completedTasks = projectTasks.filter((t) => t.status === 'Complete');
+        const totalTime = projectTasks.reduce((acc, t) => acc + (t.time_tracked || 0), 0);
 
-    // Other state variables
-    const [searchQuery, setSearchQuery] = useState('');
-    const [sortOption, setSortOption] = useState('name');
-    const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+        return {
+            total: projectTasks.length,
+            completed: completedTasks.length,
+            progress: projectTasks.length > 0
+                ? Math.round((completedTasks.length / projectTasks.length) * 100)
+                : 0,
+            timeTracked: totalTime,
+            recentActivity: projectTasks.sort((a, b) =>
+                new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime()
+            )[0]
+        };
+    }, [tasks]);
 
-    // Open project details
-    const openProjectDetails = (project: Project) => {
-        setSelectedProject(project);
-    };
+    const filteredProjects = useMemo(() => {
+        return projects.filter((project) =>
+            project.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }, [projects, searchQuery]);
 
-    // Close project details
-    const closeProjectDetails = () => {
-        setSelectedProject(null);
-    };
+    const sortedProjects = useMemo(() => {
+        let sorted = [...filteredProjects];
+        switch (sortBy) {
+            case 'progress':
+                sorted.sort((a, b) =>
+                    getProjectStats(b.name).progress - getProjectStats(a.name).progress
+                );
+                break;
+            case 'tasks':
+                sorted.sort((a, b) =>
+                    getProjectStats(b.name).total - getProjectStats(a.name).total
+                );
+                break;
+            case 'recent':
+                sorted.sort((a, b) =>
+                    new Date(b.updated_at || '').getTime() - new Date(a.updated_at || '').getTime()
+                );
+                break;
+            default:
+                sorted.sort((a, b) => a.name.localeCompare(b.name));
+        }
+        return sorted;
+    }, [filteredProjects, getProjectStats, sortBy]);
 
-    // Handle add project
     const handleAddProject = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoadingAddProject(true);
@@ -127,7 +128,6 @@ export default function Projects({
             setNewProjectColor('#ffffff');
             setNewProjectDescription('');
             setIsNewProjectDialogOpen(false);
-
         } catch (error) {
             console.error('Error adding project:', error);
             toast.error('Failed to add project.');
@@ -136,16 +136,14 @@ export default function Projects({
         }
     };
 
-    // Handle edit button click
-    const handleEditButtonClick = (project: Project, e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevent the card click event
+    const handleEditButtonClick = (project: ProjectP, e: React.MouseEvent) => {
+        e.stopPropagation();
         setEditingProject(project);
         setEditedProjectName(project.name);
         setEditedProjectColor(project.color);
-        setEditedProjectDescription(project.description || '');
+        setEditedProjectDescription('');
     };
 
-    // Save edited project
     const saveEditedProject = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoadingEditProject(true);
@@ -161,151 +159,99 @@ export default function Projects({
             } catch (error) {
                 console.error('Error updating project:', error);
                 toast.error('Failed to update project.');
-
             } finally {
                 setLoadingEditProject(false);
             }
         }
     };
 
-    // Handle delete button click
-    const handleDeleteButtonClick = (projectId: number, e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevent the card click event
-        setConfirmDeleteProjectId(projectId);
+    const handleDeleteButtonClick = (projectId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        deleteProject(projectId).catch((error) => {
+            console.error('Error deleting project:', error);
+            toast.error('Failed to delete project.');
+        });
     };
-
-    // Confirm delete
-    const confirmDeleteProject = async () => {
-        if (confirmDeleteProjectId !== null) {
-            try {
-                await deleteProject(confirmDeleteProjectId);
-                setConfirmDeleteProjectId(null);
-
-            } catch (error) {
-                console.error('Error deleting project:', error);
-                toast.error('Failed to delete project.');
-            }
-        }
-    };
-
-
-
-    // Cancel delete
-    const cancelDeleteProject = () => {
-        setConfirmDeleteProjectId(null);
-    };
-
-    const getProjectProgress = (projectName: string) => {
-        const totalTasks = tasks.filter((t) => t.project === projectName).length;
-        const completedTasks = tasks.filter(
-            (t) => t.project === projectName && t.status === 'Complete'
-        ).length;
-        return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-    };
-
-    const filteredProjects = useMemo(() => {
-        let result = [...projects];
-        if (searchQuery) {
-            result = result.filter((project) =>
-                project.name.toLowerCase().includes(searchQuery.toLowerCase())
-            );
-        }
-        if (sortOption === 'name') {
-            result.sort((a, b) => a.name.localeCompare(b.name));
-        } else if (sortOption === 'date') {
-            result.sort(
-                (a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime()
-            );
-        }
-        return result;
-    }, [projects, searchQuery, sortOption]);
-
 
     return (
-        <div>
-            {/* Search and Sort Controls */}
-            <div className="flex items-center justify-between mb-4">
-                <Input
-                    type="text"
-                    placeholder="Search projects..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-64"
-                />
-                <Select value={sortOption} onValueChange={setSortOption}>
-                    <SelectTrigger className="w-40">
-                        <SelectValue placeholder="Sort by" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="name">Name</SelectItem>
-                        <SelectItem value="date">Date Created</SelectItem>
-                    </SelectContent>
-                </Select>
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                    <h2 className="text-3xl font-bold tracking-tight">Projects</h2>
+                    <p className="text-muted-foreground">
+                        Manage and track your projects
+                    </p>
+                </div>
                 <Button onClick={() => setIsNewProjectDialogOpen(true)}>
-                    Add New Project
+                    <FolderIcon className="mr-2 h-4 w-4" />
+                    New Project
                 </Button>
             </div>
 
-            {/* Projects Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {filteredProjects.map((project) => (
-                    <Card
-                        key={project.id}
-                        onClick={() => openProjectDetails(project)}
-                        className="relative overflow-hidden rounded-lg shadow-lg cursor-pointer"
+            <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4 flex-1">
+                    <Input
+                        placeholder="Search projects..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="max-w-xs"
+                    />
+                    <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                        <SelectTrigger className="w-40">
+                            <SelectValue placeholder="Sort by" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="name">Name</SelectItem>
+                            <SelectItem value="progress">Progress</SelectItem>
+                            <SelectItem value="tasks">Tasks</SelectItem>
+                            <SelectItem value="recent">Recent</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant={view === 'grid' ? 'default' : 'outline'}
+                        size="icon"
+                        onClick={() => setView('grid')}
                     >
-                        <DotsPattern
-                            className={cn(
-                                "[mask-image:radial-gradient(300px_circle_at_center,white,transparent)]",
-                            )}
-                        />
-                        <div className="relative z-10 p-6 space-y-4">
-                            <CardHeader className="flex justify-between items-center">
-                                <CardTitle style={{ color: project.color }}>{project.name}</CardTitle>
-                                <div className="flex space-x-2">
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={(e) => handleEditButtonClick(project, e)}
-                                    >
-                                        <EditIcon className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={(e) => handleDeleteButtonClick(project.id, e)}
-                                    >
-                                        <TrashIcon className="h-4 w-4 text-red-500" />
-                                    </Button>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <p>Total Tasks: {tasks.filter((t) => t.project === project.name).length}</p>
-                                <p>
-                                    Completed Tasks:{' '}
-                                    {
-                                        tasks.filter(
-                                            (t) => t.project === project.name && t.status === 'Complete'
-                                        ).length
-                                    }
-                                </p>
-                                <div className="mt-2">
-                                    <p>Progress:</p>
-                                    <div className="w-full bg-gray-200 rounded-full h-2">
-                                        <div
-                                            className="bg-blue-600 h-2 rounded-full"
-                                            style={{ width: `${getProjectProgress(project.name)}%` }}
-                                        ></div>
-                                    </div>
-                                    <p className="text-sm mt-1">{getProjectProgress(project.name)}% Complete</p>
-                                </div>
-                            </CardContent>
-                        </div>
-                    </Card>
-                ))}
+                        <GridIcon className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant={view === 'list' ? 'default' : 'outline'}
+                        size="icon"
+                        onClick={() => setView('list')}
+                    >
+                        <ListIcon className="h-4 w-4" />
+                    </Button>
+                </div>
             </div>
 
-            {/* Add New Project Dialog */}
+            {view === 'grid' ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {sortedProjects.map((project) => (
+                        <ProjectCard
+                            key={project.id}
+                            project={project}
+                            stats={getProjectStats(project.name)}
+                            onEdit={(e) => handleEditButtonClick(project, e)}
+                            onDelete={(e) => handleDeleteButtonClick(project.id, e)}
+                        />
+                    ))}
+                </div>
+            ) : (
+                <div className="space-y-2">
+                    {sortedProjects.map((project) => (
+                        <ProjectListItem
+                            key={project.id}
+                            project={project}
+                            stats={getProjectStats(project.name)}
+                            onEdit={(e: React.MouseEvent) => handleEditButtonClick(project, e)}
+                            onDelete={(e: React.MouseEvent) => handleDeleteButtonClick(project.id, e)}
+                        />
+                    ))}
+                </div>
+            )}
+
             <Dialog open={isNewProjectDialogOpen} onOpenChange={setIsNewProjectDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
@@ -344,7 +290,6 @@ export default function Projects({
                 </DialogContent>
             </Dialog>
 
-            {/* Edit Project Dialog */}
             {editingProject && (
                 <Dialog open={!!editingProject} onOpenChange={() => setEditingProject(null)}>
                     <DialogContent>
@@ -384,73 +329,81 @@ export default function Projects({
                     </DialogContent>
                 </Dialog>
             )}
+        </div>
+    );
+}
 
-            {/* Confirm Delete Dialog */}
-            <Dialog open={confirmDeleteProjectId !== null} onOpenChange={cancelDeleteProject}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Confirm Delete</DialogTitle>
-                    </DialogHeader>
-                    <p>Are you sure you want to delete this project? This action cannot be undone.</p>
-                    <DialogFooter>
-                        <Button variant="destructive" onClick={confirmDeleteProject}>
-                            Delete
-                        </Button>
-                        <Button variant="secondary" onClick={cancelDeleteProject}>
-                            Cancel
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
 
-            {/* Project Details Dialog */}
-            {selectedProject && (
-                <Dialog open={selectedProject !== null} onOpenChange={closeProjectDetails}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle style={{ color: selectedProject.color }}>
-                                {selectedProject.name}
-                            </DialogTitle>
-                        </DialogHeader>
-                        <div>
-                            <h3 className="text-lg font-semibold mb-4">Tasks</h3>
-                            <ul className="space-y-4">
-                                {tasks
-                                    .filter((t) => t.project === selectedProject.name)
-                                    .map((task) => (
-                                        <Card
-                                            key={task.id}
-                                            className="shadow hover:shadow-lg transition-transform transform hover:-translate-y-1 cursor-pointer border-l-4"
-                                            style={{
-                                                borderColor: selectedProject.color,
-                                                backgroundImage: 'linear-gradient(135deg, #fff 0%, #f0f0f0 100%)',
-                                            }}
-                                            onClick={() => toast.success(`Task "${task.title}" has been clicked.`)}
-                                        >
-                                            <CardContent className="flex items-center justify-between p-4">
-                                                <div className="flex items-center space-x-2">
-                                                    {/* Status Icon */}
-                                                    {task.status === 'Complete' ? (
-                                                        <CheckCircle className="w-5 h-5 text-green-500" />
-                                                    ) : (
-                                                        <Circle className="w-5 h-5 text-yellow-500" />
-                                                    )}
-                                                    <span className="font-medium text-gray-800">{task.title}</span>
-                                                </div>
-                                                <Badge variant={task.status === 'Complete' ? 'success' : 'secondary'}>
-                                                    {task.status}
-                                                </Badge>
-                                            </CardContent>
-                                        </Card>
-                                    ))}
-                            </ul>
+function ProjectCard({ project, stats, onEdit, onDelete }: { project: ProjectP, stats: ProjectStats, onEdit: (e: React.MouseEvent) => void, onDelete: (e: React.MouseEvent) => void }) {
+    return (
+        <Card
+            className="relative overflow-hidden hover:shadow-lg transition-all cursor-pointer group"
+        >
+            <DotsPattern className={cn(
+                "[mask-image:radial-gradient(300px_circle_at_center,white,transparent)]",
+                "opacity-25"
+            )} />
+            <div className="relative z-10 p-6">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold" style={{ color: project.color }}>
+                        {project.name}
+                    </h3>
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="icon" onClick={onEdit}>
+                            <EditIcon className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={onDelete}>
+                            <TrashIcon className="h-4 w-4 text-destructive" />
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="space-y-4">
+                    <Progress value={stats.progress} className="h-2" />
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div className="space-y-1">
+                            <p className="text-muted-foreground">Tasks</p>
+                            <p className="font-medium">{stats.total}</p>
                         </div>
-                        <DialogFooter>
-                            <Button onClick={closeProjectDetails}>Close</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-            )}
+                        <div className="space-y-1">
+                            <p className="text-muted-foreground">Completed</p>
+                            <p className="font-medium">{stats.completed}</p>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-muted-foreground">Time Tracked</p>
+                            <p className="font-medium">{Math.round(stats.timeTracked / 60)}h</p>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-muted-foreground">Progress</p>
+                            <p className="font-medium">{stats.progress}%</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Card>
+    );
+}
+
+function ProjectListItem({ project, stats, onEdit, onDelete }: { project: ProjectP, stats: ProjectStats, onEdit: (e: React.MouseEvent) => void, onDelete: (e: React.MouseEvent) => void }) {
+    return (
+        <div className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-all">
+            <div className="flex items-center space-x-4">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: project.color }}></div>
+                <div>
+                    <h3 className="text-lg font-semibold">{project.name}</h3>
+                    <p className="text-sm text-muted-foreground">
+                        {stats.total} tasks, {stats.completed} completed
+                    </p>
+                </div>
+            </div>
+            <div className="flex items-center space-x-2">
+                <Button variant="ghost" size="icon" onClick={onEdit}>
+                    <EditIcon className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={onDelete}>
+                    <TrashIcon className="h-4 w-4 text-destructive" />
+                </Button>
+            </div>
         </div>
     );
 }

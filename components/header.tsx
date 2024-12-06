@@ -1,31 +1,34 @@
 'use client';
 
-import { BellIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ThemeSwitcherButton } from './ui/themeswitcher';
+import {motion} from 'framer-motion';
 
 interface HeaderProps {
-  darkMode: boolean;
-  setDarkMode: (value: boolean) => void;
-  theme: string;
-  setTheme: (value: string) => void;
+    toggleSidebar: () => void;
 }
 
-export default function Header({  }: HeaderProps) {
-  return (
-    <div className="flex justify-between items-center mb-6">
-      <h1 className="text-2xl font-bold">Ultima - #1 ToDo application</h1>
-      <div className="flex items-center space-x-2">
-        <ThemeSwitcherButton />
-        <Button variant="ghost" size="icon">
-          <BellIcon className="h-5 w-5" />
-        </Button>
-        <Avatar>
-          <AvatarFallback>JD</AvatarFallback>
-          <AvatarImage src="https://github.com/shadcn.png" />
-        </Avatar>
-      </div>
-    </div>
-  );
+export default function Header({ toggleSidebar }: HeaderProps) {
+    return (
+        <motion.header
+            initial={{ y: -100 }}
+            animate={{ y: 0 }}
+            className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+        >
+            <div className="container flex h-16 items-center justify-between px-4">
+                <button 
+                    onClick={toggleSidebar} 
+                    className="lg:hidden mr-4"
+                >
+                    <span className="sr-only">Toggle sidebar</span>
+                    ☰
+                </button>
+                <motion.h1
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-xl font-semibold bg-gradient-to-r from-primary to-primary/50 bg-clip-text text-transparent"
+                >
+                    Ultima
+                </motion.h1>
+            </div>
+        </motion.header>
+    );
 }

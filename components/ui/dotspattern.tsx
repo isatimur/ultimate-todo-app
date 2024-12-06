@@ -1,6 +1,6 @@
 "use client";
-import { useId } from "react";
-import { cn } from "@/lib/utils";
+import {useId} from "react";
+import {cn} from "@/lib/utils";
 
 type DotPatternProps = {
     width?: number;
@@ -14,16 +14,16 @@ type DotPatternProps = {
 };
 
 export function DotsPattern({
-    width = 16,
-    height = 16,
-    x = 0,
-    y = 0,
-    cx = 1,
-    cy = 1,
-    cr = 1,
-    className,
-    ...props
-}: Readonly<DotPatternProps>) {
+                                width = 16,
+                                height = 16,
+                                x = 0,
+                                y = 0,
+                                cx = 1,
+                                cy = 1,
+                                cr = 1,
+                                className,
+                                ...props
+                            }: Readonly<DotPatternProps>) {
     const id = useId();
 
     return (
@@ -45,10 +45,10 @@ export function DotsPattern({
                     x={x}
                     y={y}
                 >
-                    <circle cx={cx} cy={cy} id="pattern-circle" r={cr} />
+                    <circle cx={cx} cy={cy} id="pattern-circle" r={cr}/>
                 </pattern>
             </defs>
-            <rect fill={`url(#${id})`} height="100%" strokeWidth={0} width="100%" />
+            <rect fill={`url(#${id})`} height="100%" strokeWidth={0} width="100%"/>
         </svg>
     );
 }

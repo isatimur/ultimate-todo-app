@@ -6,7 +6,7 @@ import SupabaseProvider from '@/components/supabase-provider';
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { ThemeProvider } from '@/components/theme-provider';
-
+import { SettingsProvider } from '@/lib/contexts/settings-context';
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
   variable: '--font-geist-sans',
@@ -26,7 +26,7 @@ export default async function RootLayout({
 }) {
   const supabase = createServerComponentClient({ cookies });
   const {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    //@typescript-eslint/no-unused-vars
     data: { user },
   } = await supabase.auth.getUser();
 
@@ -39,8 +39,13 @@ export default async function RootLayout({
 
       >
         <Toaster />
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem={true} >
-          <SupabaseProvider>{children}</SupabaseProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem={true} disableTransitionOnChange>
+          <SupabaseProvider>
+            <SettingsProvider>
+              {children}
+              <Toaster />
+            </SettingsProvider>
+          </SupabaseProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardContent } from '@/components/ui/card';
+import {useEffect, useState} from 'react';
+import {Button} from '@/components/ui/button';
+import {Card, CardContent, CardHeader} from '@/components/ui/card';
 import CreateTeamDialog from './create-team-dialog';
-import { supabase } from '@/lib/supabase-browser';
+import {supabase} from '@/lib/supabase-browser';
 
 type Team = {
     id: string;
@@ -18,7 +18,7 @@ export default function TeamDashboard() {
     useEffect(() => {
         // Fetch teams the user is a member of
         const fetchTeams = async () => {
-            const { data, error } = await supabase
+            const {data, error} = await supabase
                 .from('team_members')
                 .select('teams(*)')
                 .eq('user_id', (await supabase.auth.getUser()).data?.user?.id);

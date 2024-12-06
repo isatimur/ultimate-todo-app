@@ -1,14 +1,25 @@
-import { Draggable } from '@hello-pangea/dnd';
-import { Button } from '@/components/ui/button';
-import { CalendarIcon, CheckIcon, EditIcon, MoreVerticalIcon, PauseIcon, PlayIcon, PlusIcon, RepeatIcon, TrashIcon, Wand2Icon } from 'lucide-react';
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { format } from "date-fns"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useEffect, useState } from 'react';
+import {Draggable} from '@hello-pangea/dnd';
+import {Button} from '@/components/ui/button';
+import {
+    CalendarIcon,
+    CheckIcon,
+    EditIcon,
+    MoreVerticalIcon,
+    PauseIcon,
+    PlayIcon,
+    PlusIcon,
+    RepeatIcon,
+    TrashIcon,
+    Wand2Icon
+} from 'lucide-react';
+import {Badge} from "@/components/ui/badge"
+import {Avatar, AvatarFallback} from "@/components/ui/avatar"
+import {Accordion, AccordionContent, AccordionItem, AccordionTrigger} from '@/components/ui/accordion';
+import {Checkbox} from '@/components/ui/checkbox';
+import {Input} from '@/components/ui/input';
+import {format} from "date-fns"
+import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from '@/components/ui/dropdown-menu';
+import {useEffect, useState} from 'react';
 
 
 interface Subtask {
@@ -45,7 +56,6 @@ interface Project {
 }
 
 
-
 interface TaskItemProps {
     task: Task;
     index: number;
@@ -61,18 +71,18 @@ interface TaskItemProps {
 }
 
 export default function TaskItem({
-    task,
-    index,
-    projects,
-    toggleTaskStatus,
-    deleteTask,
-    setEditingTask,
-    updateTask,
-    generateSubtasks,
-    activeTimer,
-    toggleTimer,
-    formatTime,
-}: TaskItemProps) {
+                                     task,
+                                     index,
+                                     projects,
+                                     toggleTaskStatus,
+                                     deleteTask,
+                                     setEditingTask,
+                                     updateTask,
+                                     generateSubtasks,
+                                     activeTimer,
+                                     toggleTimer,
+                                     formatTime,
+                                 }: TaskItemProps) {
     const [subtasks, setSubtasks] = useState(task.subtasks || []);
     const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
     const [editingSubtaskId, setEditingSubtaskId] = useState<number | null>(null);
@@ -82,13 +92,11 @@ export default function TaskItem({
         setSubtasks(task.subtasks || []);
     }, [task.subtasks]);
 
-
     const getSubtaskProgress = (subtasks: Subtask[]) => {
         const total = subtasks.length;
         const completed = subtasks.filter((sub) => sub.completed).length;
         return total > 0 ? (completed / total) * 100 : 0;
     };
-
 
     const addSubtask = () => {
         if (newSubtaskTitle.trim() === '') return;
@@ -100,23 +108,23 @@ export default function TaskItem({
         const updatedSubtasks = [...subtasks, newSubtask];
         setSubtasks(updatedSubtasks);
         setNewSubtaskTitle('');
-        updateTask({ ...task, subtasks: updatedSubtasks });
+        updateTask({...task, subtasks: updatedSubtasks});
     };
 
     // Function to toggle subtask completion
     const toggleSubtask = (subtaskId: number) => {
         const updatedSubtasks = subtasks.map((subtask) =>
-            subtask.id === subtaskId ? { ...subtask, completed: !subtask.completed } : subtask
+            subtask.id === subtaskId ? {...subtask, completed: !subtask.completed} : subtask
         );
         setSubtasks(updatedSubtasks);
-        updateTask({ ...task, subtasks: updatedSubtasks });
+        updateTask({...task, subtasks: updatedSubtasks});
     };
 
     // Function to delete a subtask
     const deleteSubtask = (subtaskId: number) => {
         const updatedSubtasks = subtasks.filter((subtask) => subtask.id !== subtaskId);
         setSubtasks(updatedSubtasks);
-        updateTask({ ...task, subtasks: updatedSubtasks });
+        updateTask({...task, subtasks: updatedSubtasks});
     };
 
     const editSubtask = (subtaskId: number) => {
@@ -129,10 +137,10 @@ export default function TaskItem({
 
     const saveEditedSubtask = () => {
         const updatedSubtasks = subtasks.map((subtask) =>
-            subtask.id === editingSubtaskId ? { ...subtask, title: editedSubtaskTitle } : subtask
+            subtask.id === editingSubtaskId ? {...subtask, title: editedSubtaskTitle} : subtask
         );
         setSubtasks(updatedSubtasks);
-        updateTask({ ...task, subtasks: updatedSubtasks });
+        updateTask({...task, subtasks: updatedSubtasks});
         setEditingSubtaskId(null);
         setEditedSubtaskTitle('');
     };
@@ -152,24 +160,25 @@ export default function TaskItem({
                         className={`rounded-full ${task.status === 'Complete' ? 'bg-green-500 text-white' : ''}`}
                         onClick={() => toggleTaskStatus(task.id)}
                     >
-                        <CheckIcon className="h-4 w-4" />
+                        <CheckIcon className="h-4 w-4"/>
                     </Button>
                     <div className="flex-1">
                         <h3
                             className={`font-semibold ${task.status === 'Complete' ? 'line-through text-muted-foreground' : ''
-                                }`}
+                            }`}
                         >
                             {task.title}
                         </h3>
                         {/* Task details like priority, status, due date, assignees, etc. */}
                         <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
                         <div className="flex items-center space-x-2 mt-2">
-                            <Badge variant={task.priority === 'High' ? 'destructive' : task.priority === 'Medium' ? 'default' : 'secondary'}>
+                            <Badge
+                                variant={task.priority === 'High' ? 'destructive' : task.priority === 'Medium' ? 'default' : 'secondary'}>
                                 {task.priority}
                             </Badge>
                             <Badge variant="outline">{task.status}</Badge>
                             <div className="flex items-center text-sm text-muted-foreground">
-                                <CalendarIcon className="h-4 w-4 mr-1" />
+                                <CalendarIcon className="h-4 w-4 mr-1"/>
                                 {task.due_date && (
                                     <span>{format(new Date(task.due_date), 'PP')}</span>
                                 )}
@@ -196,7 +205,7 @@ export default function TaskItem({
                             ))}
                             {task.recurrence && (
                                 <Badge variant="outline">
-                                    <RepeatIcon className="h-4 w-4 mr-1" />
+                                    <RepeatIcon className="h-4 w-4 mr-1"/>
                                     {task.recurrence}
                                 </Badge>
                             )}
@@ -207,7 +216,7 @@ export default function TaskItem({
                             <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
                                 <div
                                     className="bg-blue-600 h-2 rounded-full"
-                                    style={{ width: `${getSubtaskProgress(task.subtasks)}%` }}
+                                    style={{width: `${getSubtaskProgress(task.subtasks)}%`}}
                                 ></div>
                             </div>
                         )}
@@ -233,20 +242,24 @@ export default function TaskItem({
                                                                 onChange={(e) => setEditedSubtaskTitle(e.target.value)}
                                                                 className="flex-1"
                                                             />
-                                                            <Button variant="ghost" size="icon" onClick={saveEditedSubtask}>
+                                                            <Button variant="ghost" size="icon"
+                                                                    onClick={saveEditedSubtask}>
                                                                 Save
                                                             </Button>
                                                         </div>
                                                     ) : (
                                                         <div className="flex items-center space-x-2">
-                                                            <span className={subtask.completed ? 'line-through' : ''}>{subtask.title}</span>
-                                                            <Button variant="ghost" size="icon" onClick={() => editSubtask(subtask.id)}>
-                                                                <EditIcon className="h-4 w-4" />
+                                                            <span
+                                                                className={subtask.completed ? 'line-through' : ''}>{subtask.title}</span>
+                                                            <Button variant="ghost" size="icon"
+                                                                    onClick={() => editSubtask(subtask.id)}>
+                                                                <EditIcon className="h-4 w-4"/>
                                                             </Button>
                                                         </div>
                                                     )}
-                                                    <Button variant="ghost" size="icon" onClick={() => deleteSubtask(subtask.id)}>
-                                                        <TrashIcon className="h-4 w-4" />
+                                                    <Button variant="ghost" size="icon"
+                                                            onClick={() => deleteSubtask(subtask.id)}>
+                                                        <TrashIcon className="h-4 w-4"/>
                                                     </Button>
                                                 </div>
                                             ))
@@ -271,11 +284,11 @@ export default function TaskItem({
                                                 size="icon"
                                                 onClick={() => generateSubtasks(task.id)}
                                             >
-                                                <Wand2Icon className="size-4" />
+                                                <Wand2Icon className="size-4"/>
                                             </Button>
 
                                             <Button variant="outline" size="icon" onClick={addSubtask}>
-                                                <PlusIcon className="h-4 w-4" />
+                                                <PlusIcon className="h-4 w-4"/>
                                             </Button>
                                         </div>
                                     </div>
@@ -287,27 +300,28 @@ export default function TaskItem({
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon">
-                                    <MoreVerticalIcon className="h-4 w-4" />
+                                    <MoreVerticalIcon className="h-4 w-4"/>
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 <DropdownMenuItem onClick={() => generateSubtasks(task.id)}>
-                                    <Wand2Icon className="mr-2 h-4 w-4" />
+                                    <Wand2Icon className="mr-2 h-4 w-4"/>
                                     Re-generate subtasks
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => setEditingTask(task)}>
-                                    <EditIcon className="mr-2 h-4 w-4" />
+                                    <EditIcon className="mr-2 h-4 w-4"/>
                                     Edit
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => deleteTask(task.id)}>
-                                    <TrashIcon className="mr-2 h-4 w-4" />
+                                    <TrashIcon className="mr-2 h-4 w-4"/>
                                     Delete
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                         <div className="flex items-center space-x-2">
                             <Button variant="outline" size="icon" onClick={() => toggleTimer(task.id)}>
-                                {activeTimer === task.id ? <PauseIcon className="h-4 w-4" /> : <PlayIcon className="h-4 w-4" />}
+                                {activeTimer === task.id ? <PauseIcon className="h-4 w-4"/> :
+                                    <PlayIcon className="h-4 w-4"/>}
                             </Button>
                             <span className="text-sm font-mono">{formatTime(task.time_tracked)}</span>
                         </div>

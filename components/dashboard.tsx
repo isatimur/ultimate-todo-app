@@ -1,7 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
-import { Button } from '@/components/ui/button';
-import { BrainIcon, MoreVerticalIcon } from 'lucide-react';
+import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
+import {Cell, Pie, PieChart, ResponsiveContainer, Tooltip} from 'recharts';
+import {Button} from '@/components/ui/button';
+import {BrainIcon, MoreVerticalIcon} from 'lucide-react';
 
 interface DashboardProps {
     chartData: { name: string; value: number }[];
@@ -10,7 +10,7 @@ interface DashboardProps {
     applyAISuggestion: () => void;
 }
 
-export default function Dashboard({ chartData, aiSuggestion, getAISuggestions, applyAISuggestion }: DashboardProps) {
+export default function Dashboard({chartData, aiSuggestion, getAISuggestions, applyAISuggestion}: DashboardProps) {
     return (
         <div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -37,7 +37,7 @@ export default function Dashboard({ chartData, aiSuggestion, getAISuggestions, a
                                         />
                                     ))}
                                 </Pie>
-                                <Tooltip />
+                                <Tooltip/>
                             </PieChart>
                         </ResponsiveContainer>
                     </CardContent>
@@ -52,7 +52,7 @@ export default function Dashboard({ chartData, aiSuggestion, getAISuggestions, a
                         </p>
                         <div className="flex space-x-2">
                             <Button onClick={getAISuggestions}>
-                                <BrainIcon className="h-4 w-4 mr-2" /> Get Suggestion
+                                <BrainIcon className="h-4 w-4 mr-2"/> Get Suggestion
                             </Button>
                             {aiSuggestion && (
                                 <Button onClick={applyAISuggestion}>
@@ -67,7 +67,7 @@ export default function Dashboard({ chartData, aiSuggestion, getAISuggestions, a
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">To Do</CardTitle>
-                        <MoreVerticalIcon className="h-4 w-4 text-muted-foreground" />
+                        <MoreVerticalIcon className="h-4 w-4 text-muted-foreground"/>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{chartData.find(data => data.name === 'To Do')?.value}</div>
@@ -76,28 +76,31 @@ export default function Dashboard({ chartData, aiSuggestion, getAISuggestions, a
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-                        <MoreVerticalIcon className="h-4 w-4 text-muted-foreground" />
+                        <MoreVerticalIcon className="h-4 w-4 text-muted-foreground"/>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{chartData.find(data => data.name === 'In Progress')?.value}</div>
+                        <div
+                            className="text-2xl font-bold">{chartData.find(data => data.name === 'In Progress')?.value}</div>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">In Review</CardTitle>
-                        <MoreVerticalIcon className="h-4 w-4 text-muted-foreground" />
+                        <MoreVerticalIcon className="h-4 w-4 text-muted-foreground"/>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{chartData.find(data => data.name === 'In Review')?.value}</div>
+                        <div
+                            className="text-2xl font-bold">{chartData.find(data => data.name === 'In Review')?.value}</div>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Completed</CardTitle>
-                        <MoreVerticalIcon className="h-4 w-4 text-muted-foreground" />
+                        <MoreVerticalIcon className="h-4 w-4 text-muted-foreground"/>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{chartData.find(data => data.name === 'Complete')?.value}</div>
+                        <div
+                            className="text-2xl font-bold">{chartData.find(data => data.name === 'Complete')?.value}</div>
                     </CardContent>
                 </Card>
             </div>

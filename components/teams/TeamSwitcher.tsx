@@ -1,64 +1,63 @@
-import { useState, useEffect } from 'react';
-import { supabase } from "@/lib/supabase-browser";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Database } from "@/lib/database.types";
+import {useEffect} from 'react';
+import {supabase} from '@/lib/supabase-browser';
+import {Database} from '@/lib/database.types';
 
 type Team = Database['public']['Tables']['teams']['Row'];
 
-const TeamSwitcher: React.FC = () => {
-  const [teams] = useState<Team[]>([]);
-  const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
+export default function TeamSwitcher({teams, setTeams, currentTeam, setCurrentTeam}: {
+    teams: Team[],
+    setTeams: (teams: Team[]) => void,
+    currentTeam: Team | null,
+    setCurrentTeam: (team: Team | null) => void
+}) {
 
-  useEffect(() => {
-    const fetchTeams = async () => {
-      const user = (await supabase.auth.getUser()).data.user;
-      if (!user) return;
 
-      const { data, error } = await supabase
-        .from('team_members')
-        .select('teams(id, name)')
-        .eq('user_id', user.id);
+    useEffect(() => {
+        const fetchTeams = async () => {
+            const {data: user} = await supabase.auth.getUser();
+            if (!user) {
+                console.error('User not authenticated');
+                return;
+            }
 
-      if (error) {
-        console.error('Error fetching teams:', error);
-        return;
-      }
+            const {data, error} = await supabase
+                .from('team_members')
+                .select('team_id, teams(name)')
+                .eq('user_id', user.user?.id);
 
-      if (data) {
-        //   const fetchedTeams = data.map(member => ({
-        //     id: member.teams?.id,
-        //     name: member.teams?.name
-        //   })).filter((team): team is Team => team.id !== undefined && team.name !== undefined);
+            if (error) {
+                console.error('Error fetching teams:', error);
+            } else if (data) {
+                const teamList = data.map((tm) => ({
+                    id: tm.team_id,
+                    name: tm.teams[0].name,
+                }));
+                setTeams(teamList as Team[]);
+                setCurrentTeam(teamList[0] as Team | null);
+            }
+        };
 
-        // setTeams(fetchedTeams as Team[]);
-        // if (fetchedTeams.length > 0) {
-        //   setSelectedTeam(fetchedTeams[0].id as number) ; // Default to first team
-        // }
-      }
+        fetchTeams();
+    }, [teams, currentTeam]);
+
+    const handleTeamChange = (teamId: string) => {
+        const selectedTeam = teams.find((team) => team.id === teamId) || null;
+        setCurrentTeam(selectedTeam);
+        // Additional logic to update the context or state
     };
 
-    fetchTeams();
-  }, []);
-
-  const handleTeamChange = (teamId: string) => {
-    setSelectedTeam(parseInt(teamId));
-    // TODO: Redirect or update context based on the selected team
-  };
-
-  return (
-    <Select value={selectedTeam ? selectedTeam.toString() : ''} onValueChange={handleTeamChange}>
-      <SelectTrigger>
-        <SelectValue placeholder="Select Team" />
-      </SelectTrigger>
-      <SelectContent>
-        {teams.map(team => (
-          <SelectItem key={team.id} value={team.id.toString()}>
-            {team.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-};
-
-export default TeamSwitcher;
+    return (
+        <div>
+            <select
+                value={currentTeam?.id || ''}
+                onChange={(e) => handleTeamChange(e.target.value)}
+            >
+                {teams.map((team) => (
+                    <option key={team.id} value={team.id}>
+                        {team.name}
+                    </option>
+                ))}
+            </select>
+        </div>
+    );
+}
