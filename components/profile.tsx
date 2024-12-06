@@ -1,6 +1,6 @@
 'use client';
 
-import {useState, useEffect} from 'react';
+import {useState, useEffect, useCallback} from 'react';
 import {User} from '@supabase/supabase-js';
 import {Card, CardContent, CardHeader, CardTitle} from './ui/card';
 import {Avatar, AvatarFallback, AvatarImage} from './ui/avatar';
@@ -72,7 +72,7 @@ export default function Profile({user}: ProfileProps) {
         fetchProfile();
     }, [user]);
 
-    const fetchProfile = async () => {
+    const fetchProfile = useCallback(async () => {
         try {
             if (!user) return;
             
@@ -133,7 +133,7 @@ export default function Profile({user}: ProfileProps) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [user]);
 
     const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
         try {
@@ -177,8 +177,8 @@ export default function Profile({user}: ProfileProps) {
             }
 
             const updates = {
-                id: user.id,
-                email: user.email || '',
+                id: user?.id,
+                email: user?.email || '',
                 ...updatedProfile,
                 updated_at: new Date().toISOString(),
                 privacy_settings: updatedProfile.privacy_settings || {
