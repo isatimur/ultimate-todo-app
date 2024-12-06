@@ -25,3 +25,9 @@ export interface Column {
 
 export type View = "board" | "calendar" | "list" | "gantt"
 
+export interface UserProfile {
+  id: string;
+  email: string;
+  full_name: string;
+  avatar_url: string;
+}

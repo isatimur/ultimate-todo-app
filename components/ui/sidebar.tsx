@@ -5,12 +5,12 @@ import { cn } from '@/lib/utils';
 import { Button } from './button';
 import { ChevronLeft } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
 import { ThemeSwitcherButton } from './themeswitcher';
 import { Avatar, AvatarImage, AvatarFallback } from './avatar';
 import { User } from '@supabase/supabase-js';
 import Image from 'next/image';
 import Link from 'next/link';
+import { UserProfile } from '@/lib/types';
 
 const sidebarVariants = {
     open: {
@@ -55,9 +55,12 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
     setOpen: (open: boolean) => void;
     children: React.ReactNode;
     user: User | null;
+    userProfile: UserProfile | null;
+    isLoadingProfile: boolean;
 }
 
-export function Sidebar({ open, setOpen, children, className, user }: SidebarProps) {
+export function Sidebar({ open, setOpen, children, className, user, userProfile, isLoadingProfile }: SidebarProps) {
+    console.log('User profile:', userProfile);
 
     return (
         <>
@@ -134,28 +137,31 @@ export function Sidebar({ open, setOpen, children, className, user }: SidebarPro
 
                         {user && (
                             <div className={cn(
-                                "flex items-center h-11",
-                                open ? "px-3" : "justify-center"
+                                "px-2 py-2 flex items-center gap-3",
+                                isLoadingProfile && "opacity-50"
                             )}>
-                                <Avatar className="h-9 w-9">
-                                    <AvatarImage src={user.user_metadata?.avatar_url} />
+                                <Avatar className="h-8 w-8">
+                                    <AvatarImage
+                                        src={userProfile?.avatar_url || user.user_metadata?.avatar_url}
+                                        alt={userProfile?.full_name || user.user_metadata?.full_name || 'User'}
+                                    />
                                     <AvatarFallback>
-                                        {user.email?.[0].toUpperCase()}
+                                        {((userProfile?.full_name || user.user_metadata?.full_name || user.email || 'U') as string)
+                                            .split(' ')
+                                            .map((n: string) => n[0])
+                                            .join('')
+                                            .toUpperCase()}
                                     </AvatarFallback>
                                 </Avatar>
-
                                 {open && (
-                                    <motion.div
-                                        variants={itemVariants}
-                                        className="ml-3 overflow-hidden"
-                                    >
-                                        <p className="text-sm font-medium leading-none truncate">
-                                            {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                                    <div className="flex flex-col min-w-0">
+                                        <p className="text-sm font-medium truncate">
+                                            {userProfile?.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}
                                         </p>
-                                        <p className="text-xs text-muted-foreground truncate mt-1">
-                                            {user.email}
+                                        <p className="text-xs text-muted-foreground truncate">
+                                            {userProfile?.email || user.email || ''}
                                         </p>
-                                    </motion.div>
+                                    </div>
                                 )}
                             </div>
                         )}

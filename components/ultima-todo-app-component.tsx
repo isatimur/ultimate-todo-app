@@ -17,7 +17,7 @@ import { TaskType } from './tasks'
 import { supabase } from '@/lib/supabase-browser';
 import { ProjectsProps } from './projects';
 import { Team } from '@/types/team';
-
+import { UserProfile } from '@/lib/types';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Sidebar, SidebarLink } from './ui/sidebar';
@@ -28,13 +28,15 @@ import {
     IconLayoutDashboard,
     IconSettings,
     IconUser,
-    IconUsersGroup
+    IconUsersGroup,
+    IconMoon
 } from '@tabler/icons-react';
 
 import { AnimatePresence, motion } from 'framer-motion';
 import { TooltipProvider } from './ui/tooltip';
 import { Project } from 'next/dist/build/swc';
 import TeamsView from '@/components/teams/teams-view';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
 interface Subtask {
     id: number
@@ -48,6 +50,8 @@ interface Template {
     tasks: Omit<TaskType, 'id' | 'time_tracked'>[]
     user_id: string
 }
+
+
 
 export default function UltimateTodoAppComponent2() {
     // Global state variables
@@ -63,6 +67,7 @@ export default function UltimateTodoAppComponent2() {
     const [pomodoroTime, setPomodoroTime] = useState(25 * 60)
     const [isPomodoro, setIsPomodoro] = useState(false)
     const [aiSuggestion, setAiSuggestion] = useState('')
+    const [isLoadingProfile, setIsLoadingProfile] = useState(false);
 
     const pomodoroRef = useRef<NodeJS.Timeout | null>(null)
     const [teams, setTeams] = useState<Team[]>([]);
@@ -296,15 +301,70 @@ export default function UltimateTodoAppComponent2() {
         }
     }, [user, fetchTasks, fetchProjects, fetchTemplates, fetchTeams]);
 
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+    const fetchUserProfile = useCallback(async () => {
+        if (!user) return;
+
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .single();
+
+            if (error) {
+                console.error('Error fetching user profile:', error);
+                return;
+            }
+
+            console.log('Fetched user profile:', data);
+            if (data) {
+                setUserProfile(data);
+            } else {
+                // If no profile exists, create one
+                const newProfile = {
+                    id: user.id,
+                    email: user.email,
+                    full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+                    avatar_url: user.user_metadata?.avatar_url || '',
+                    updated_at: new Date().toISOString()
+                } as UserProfile;
+
+                const { error: insertError } = await supabase
+                    .from('profiles')
+                    .insert([newProfile])
+                    .single();
+
+                if (insertError) {
+                    console.error('Error creating user profile:', insertError);
+                    return;
+                }
+
+                setUserProfile(newProfile);
+            }
+        } catch (error) {
+            console.error('Error in fetchUserProfile:', error);
+        }
+    }, [user]);
+
     useEffect(() => {
         const { data: authListener } = supabase.auth.onAuthStateChange(
             async (event, session) => {
                 const currentUser = session?.user;
                 setUser(currentUser ?? null);
 
-                if (event === 'SIGNED_IN') {
-                    await fetchData();
+                if (event === 'SIGNED_IN' && currentUser) {
+                    try {
+                        await Promise.all([
+                            fetchData(),
+                            fetchUserProfile()
+                        ]);
+                    } catch (error) {
+                        console.error('Error during sign in:', error);
+                    }
                 } else if (event === 'SIGNED_OUT') {
+                    setUserProfile(null); // Clear the profile on sign out
                     router.push('/signin');
                 }
             }
@@ -320,6 +380,7 @@ export default function UltimateTodoAppComponent2() {
     useEffect(() => {
         if (user) {
             fetchData();
+            fetchUserProfile();
         }
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -872,7 +933,7 @@ export default function UltimateTodoAppComponent2() {
     return (
         <TooltipProvider delayDuration={0}>
             <div className="min-h-screen flex bg-background">
-                <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} user={user}>
+                <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} user={user} userProfile={userProfile} isLoadingProfile={isLoadingProfile}>
                     <div className="flex-1 py-2">
 
                         <nav className="space-y-1 px-2">
