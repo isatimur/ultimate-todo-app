@@ -10,7 +10,8 @@ import {
     PlusIcon,
     RepeatIcon,
     TrashIcon,
-    Wand2Icon
+    Wand2Icon,
+    FolderIcon
 } from 'lucide-react';
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -20,16 +21,9 @@ import { Input } from '@/components/ui/input';
 import { format } from "date-fns"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useEffect, useState } from 'react';
-import { TaskType } from './tasks';
+import { TaskType, Task } from '@/types/project';
 import { ProjectType } from './projects';
-
-
-interface Subtask {
-    id: number
-    title: string
-    completed: boolean
-}
-
+import { IconDots, IconClock, IconSubtask } from '@tabler/icons-react';
 
 interface TaskItemProps {
     task: TaskType;
@@ -43,6 +37,7 @@ interface TaskItemProps {
     activeTimer: number | null;
     toggleTimer: (taskId: number) => void;
     formatTime: (seconds: number) => string;
+    allTasks?: Task[];
 }
 
 export default function TaskItem({
@@ -57,17 +52,20 @@ export default function TaskItem({
     activeTimer,
     toggleTimer,
     formatTime,
+    allTasks = []
 }: TaskItemProps) {
     const [subtasks, setSubtasks] = useState(task.subtasks || []);
     const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
     const [editingSubtaskId, setEditingSubtaskId] = useState<number | null>(null);
     const [editedSubtaskTitle, setEditedSubtaskTitle] = useState('');
+    const [showSubtasks, setShowSubtasks] = useState(false);
+    const [showDependencies, setShowDependencies] = useState(false);
 
     useEffect(() => {
         setSubtasks(task.subtasks || []);
     }, [task.subtasks]);
 
-    const getSubtaskProgress = (subtasks: Subtask[]) => {
+    const getSubtaskProgress = (subtasks: TaskType['subtasks']) => {
         const total = subtasks.length;
         const completed = subtasks.filter((sub) => sub.completed).length;
         return total > 0 ? (completed / total) * 100 : 0;
@@ -120,6 +118,15 @@ export default function TaskItem({
         setEditedSubtaskTitle('');
     };
 
+    const dependencyTasks = (task.dependencies || [])
+        .map(id => allTasks.find(t => t.id === id))
+        .filter((t): t is Task => t !== undefined);
+
+    const isBlocked = dependencyTasks.some(t => t.status !== 'Complete');
+
+    // Find project data
+    const projectData = task.project_id ? projects.find(p => p.id === task.project_id) : undefined;
+
     return (
         <Draggable key={task.id} draggableId={task.id.toString()} index={index}>
             {(provided) => (
@@ -134,6 +141,7 @@ export default function TaskItem({
                         size="icon"
                         className={`rounded-full ${task.status === 'Complete' ? 'bg-green-500 text-white' : ''}`}
                         onClick={() => toggleTaskStatus(task.id)}
+                        disabled={isBlocked}
                     >
                         <CheckIcon className="h-4 w-4" />
                     </Button>
@@ -159,29 +167,35 @@ export default function TaskItem({
                                 )}
                             </div>
                             <div className="flex -space-x-2">
-                                {task.assignees.map((assignee, index) => (
+                                {(task.assignees || []).map((assignee, index) => (
                                     <Avatar key={index} className="border-2 border-background">
                                         <AvatarFallback>{assignee}</AvatarFallback>
                                     </Avatar>
                                 ))}
                             </div>
-                            {task.project && (
+                            {projectData && (
                                 <Badge
                                     style={{
-                                        backgroundColor: projects.find(p => p.name === task.project)?.color,
+                                        backgroundColor: projectData.color,
                                         color: '#fff'
                                     }}
                                 >
-                                    {task.project}
+                                    <FolderIcon className="w-3 h-3 mr-1" />
+                                    {projectData.name}
                                 </Badge>
                             )}
-                            {task.tags.map(tag => (
+                            {(task.tags || []).map(tag => (
                                 <Badge key={tag} variant="outline">{tag}</Badge>
                             ))}
                             {task.recurrence && (
                                 <Badge variant="outline">
                                     <RepeatIcon className="h-4 w-4 mr-1" />
                                     {task.recurrence}
+                                </Badge>
+                            )}
+                            {isBlocked && (
+                                <Badge variant="destructive">
+                                    Blocked
                                 </Badge>
                             )}
                         </div>
@@ -283,7 +297,11 @@ export default function TaskItem({
                                     <Wand2Icon className="mr-2 h-4 w-4" />
                                     Re-generate subtasks
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setEditingTask(task)}>
+                                <DropdownMenuItem onClick={() => setEditingTask({
+                                    ...task,
+                                    project_id: projectData?.id,
+                                    project_name: projectData?.name
+                                })}>
                                     <EditIcon className="mr-2 h-4 w-4" />
                                     Edit
                                 </DropdownMenuItem>
@@ -298,8 +316,15 @@ export default function TaskItem({
                                 {activeTimer === task.id ? <PauseIcon className="h-4 w-4" /> :
                                     <PlayIcon className="h-4 w-4" />}
                             </Button>
-                            <span className="text-sm font-mono">{formatTime(task.time_tracked)}</span>
+                            <span className="text-sm font-mono">{formatTime(task.time_tracked || 0)}</span>
                         </div>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowDependencies(!showDependencies)}
+                        >
+                            <IconSubtask className="w-4 h-4" />
+                        </Button>
                     </div>
                 </div>
             )}

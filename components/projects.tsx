@@ -8,7 +8,7 @@ import {
     CheckCircle, Circle, EditIcon, TrashIcon,
     FolderIcon, GridIcon, ListIcon
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Badge } from './ui/badge';
 import { HexColorPicker } from 'react-colorful';
@@ -17,7 +17,7 @@ import { DotsPattern } from './ui/dotspattern';
 import { toast } from 'sonner';
 import { Progress } from './ui/progress';
 import { format } from 'date-fns';
-import { TaskType } from './tasks';
+import { TaskType } from '@/lib/types';
 
 export interface ProjectType {
     id: string;
@@ -252,6 +252,9 @@ export default function Projects({
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Add New Project</DialogTitle>
+                        <DialogDescription>
+                            Create a new project by entering its details below. Choose a name, color, and optional description.
+                        </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleAddProject}>
                         <div className="space-y-2">

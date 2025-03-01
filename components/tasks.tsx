@@ -1,63 +1,64 @@
-import { useCallback, useMemo, useState } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Wand2Icon } from 'lucide-react';
-import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd';
-import TaskItem from './task-item';
-import { supabase } from '@/lib/supabase-browser';
-import { Badge } from './ui/badge';
+"use client"
+
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { Column, Task, TaskStatus, TaskPriority, View } from '@/lib/types';
+import { useUser } from '@/lib/hooks/useUser';
+import { BoardView } from './board-view';
+import { CalendarView } from './calendar-view';
+import { GanttView } from './gantt-view';
+import { TableView } from './table-view';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Input } from './ui/input';
+import { Button } from './ui/button';
+import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Switch } from './ui/switch';
-import { Label } from './ui/label';
-import { SearchBar } from './ui/searchbar';
-import { ProjectType } from './projects';
+import { 
+    Plus, 
+    Search, 
+    Calendar, 
+    LayoutGrid, 
+    List, 
+    GanttChart,
+    Filter,
+    SlidersHorizontal,
+    Clock,
+    Tag,
+    FolderIcon
+} from 'lucide-react';
+import { Badge } from './ui/badge';
+import { useDebounce } from '@/lib/hooks/useDebounce';
+import { supabase } from '@/lib/supabase-browser';
+import { toast } from 'sonner';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import TaskItem from './task-item';
+import { DragDropContext, Droppable } from '@hello-pangea/dnd';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover"
+import { Separator } from '@/components/ui/separator';
+import { format } from 'date-fns';
+import { DatePickerWithRange } from '@/components/ui/date-picker-with-range';
+import { ListView } from './list-view';
 
-
-interface Subtask {
-    id: number
-    title: string
-    completed: boolean
-}
-
-export interface TaskType {
-    id: number
-    title: string
-    status: 'To Do' | 'In Progress' | 'In Review' | 'Complete'
-    priority: 'Low' | 'Medium' | 'High' | 'Urgent'
-    due_date: string
-    assignees: string[]
-    description: string
-    subtasks: Subtask[]
-    time_tracked: number
-    project: string
-    tags: string[]
-    dependencies: number[]
-    recurrence: string | null
-    importance: number
-    urgency: number
-    user_id: string
-    team_id?: string
-    created_at: string
-}
-
-
-
-export interface TasksProps {
-    taskList: TaskType[];
+interface TasksProps {
+    initialTasks?: Task[];
     projects: ProjectType[];
-    addTask: (title: string) => void;
-    updateTask: (task: TaskType) => void;
-    deleteTask: (id: number) => void;
-    toggleTaskStatus: (id: number) => void;
-    generateSubtasks: (taskId: number) => void;
-    setEditingTask: (task: TaskType | null) => void;
-    activeTimer: number | null;
-    toggleTimer: (taskId: number) => void;
+    addTask: (task: Partial<Task>) => Promise<void>;
+    updateTask: (task: Task) => Promise<void>;
+    deleteTask: (id: string) => Promise<void>;
+    generateSubtasks: (taskId: string) => Promise<void>;
+    toggleTaskStatus: (id: string) => Promise<void>;
+    setEditingTask: (task: Task | null) => void;
+    activeTimer: string | null;
+    toggleTimer: (taskId: string) => void;
     formatTime: (seconds: number) => string;
 }
 
-export default function Tasks({
-    taskList,
+export function Tasks({
+    initialTasks = [],
     projects,
     addTask,
     updateTask,
@@ -67,173 +68,552 @@ export default function Tasks({
     setEditingTask,
     activeTimer,
     toggleTimer,
-    formatTime,
-    // Other necessary props
+    formatTime
 }: TasksProps) {
-    // Local state for filters, search, etc.
-    const [filter, setFilter] = useState('all');
-    const [search, setSearch] = useState('');
-    const [selectedProject, setSelectedProject] = useState<number | null>(null);
-    const [showCompleted, setShowCompleted] = useState(true);
-    const [newTask, setNewTask] = useState('');
+    const [mounted, setMounted] = useState(false)
+    const { user } = useUser();
+    const [view, setView] = useState<View>('board');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedStatus, setSelectedStatus] = useState<TaskStatus | 'all'>('all');
+    const [selectedPriority, setSelectedPriority] = useState<'all' | TaskPriority>('all');
+    const [selectedProject, setSelectedProject] = useState<string | 'all'>('all');
+    const [selectedDateRange, setSelectedDateRange] = useState<{
+        from: Date | undefined;
+        to: Date | undefined;
+    }>({
+        from: undefined,
+        to: undefined
+    });
+    const [selectedTags, setSelectedTags] = useState<string[]>([]);
+    const [tasks, setTasks] = useState<Task[]>(initialTasks);
+    const [isLoading, setIsLoading] = useState(false);
+    const [showFilters, setShowFilters] = useState(false);
+    const parentRef = useRef<HTMLDivElement>(null);
 
+    const debouncedSearch = useDebounce(searchQuery, 300);
 
-    // Filtered tasks
-    const filteredTasks = useMemo(() => {
-        return taskList.filter(task => {
-            if (filter !== 'all' && task.status !== filter) return false
-            if (search && !task.title.toLowerCase().includes(search.toLowerCase())) return false
-            if (selectedProject && task.project !== projects.find(p => p.id.toString() === selectedProject.toString())?.name) return false
-            if (!showCompleted && task.status === 'Complete') return false
-            return true
-        })
-    }, [taskList, filter, search, selectedProject, showCompleted, projects])
+    // Get unique tags from all tasks
+    const allTags = useMemo(() => 
+        Array.from(new Set(tasks.flatMap(task => task.tags || []))),
+        [tasks]
+    );
 
-    const getStatusCount = useMemo(() =>
-        (status: TaskType['status']) => taskList.filter(t => t.status === status).length,
-        [taskList]);
+    // Memoize filtered tasks to prevent unnecessary recalculations
+    const filteredTasks = useMemo(() => 
+        tasks.filter((task) => {
+            const matchesSearch =
+                task.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+                task.description?.toLowerCase().includes(debouncedSearch.toLowerCase());
 
+            const matchesStatus = selectedStatus === 'all' || task.status === selectedStatus;
+            const matchesPriority = selectedPriority === 'all' || task.priority === selectedPriority;
+            const matchesProject = selectedProject === 'all' || task.project === selectedProject;
+            
+            const matchesDateRange = !selectedDateRange.from || !selectedDateRange.to || (
+                task.due_date && 
+                new Date(task.due_date) >= selectedDateRange.from &&
+                new Date(task.due_date) <= selectedDateRange.to
+            );
 
-    const onDragEnd = useCallback(async (result: DropResult) => {
-        if (!result.destination) return;
+            const matchesTags = selectedTags.length === 0 || 
+                (task.tags && selectedTags.every(tag => task.tags.includes(tag)));
 
-        const newTasks = Array.from(taskList);
-        const [reorderedTask] = newTasks.splice(result.source.index, 1);
-        newTasks.splice(result.destination.index, 0, reorderedTask);
+            return matchesSearch && matchesStatus && matchesPriority && 
+                   matchesProject && matchesDateRange && matchesTags;
+        }),
+        [
+            tasks,
+            debouncedSearch,
+            selectedStatus,
+            selectedPriority,
+            selectedProject,
+            selectedDateRange.from,
+            selectedDateRange.to,
+            selectedTags
+        ]
+    );
 
-        // Update the order in Supabase
-        const { error } = await supabase
-            .from('tasks')
-            .update({ order: result.destination.index })
-            .eq('id', reorderedTask.id);
+    const virtualizer = useVirtualizer({
+        count: filteredTasks.length,
+        getScrollElement: () => parentRef.current,
+        estimateSize: () => 100,
+        overscan: 10,
+        measureElement: true,
+        scrollPaddingStart: 8,
+        scrollPaddingEnd: 8,
+        initialRect: { width: 0, height: 0 },
+    });
 
-        if (error) {
-            console.error('Error updating task order:', error);
+    // Add a resize observer to handle window resizing
+    useEffect(() => {
+        if (!parentRef.current) return;
+
+        const resizeObserver = new ResizeObserver(() => {
+            virtualizer.measure();
+        });
+
+        resizeObserver.observe(parentRef.current);
+
+        return () => {
+            resizeObserver.disconnect();
+        };
+    }, [virtualizer]);
+
+    // Add smooth scrolling when tasks change
+    useEffect(() => {
+        virtualizer.measure();
+    }, [filteredTasks, virtualizer]);
+
+    const fetchTasks = useCallback(async () => {
+        if (!user) return;
+    
+        setIsLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('tasks')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            setTasks(data);
+        } catch (error) {
+            console.error('Error fetching tasks:', error);
+            toast.error('Failed to load tasks');
+        } finally {
+            setIsLoading(false);
         }
-    }, [taskList]);
+    }, [user]);
+
+    useEffect(() => {
+        fetchTasks();
+    }, [fetchTasks]);
+
+    // Memoize task status groupings
+    const tasksByStatus = useMemo(() => ({
+        'To Do': filteredTasks.filter((task) => task.status === 'To Do'),
+        'In Progress': filteredTasks.filter((task) => task.status === 'In Progress'),
+        'In Review': filteredTasks.filter((task) => task.status === 'In Review'),
+        'Complete': filteredTasks.filter((task) => task.status === 'Complete'),
+    }), [filteredTasks]);
+
+    const getProjectStats = useCallback((projectId: string) => {
+        const projectTasks = tasks.filter(t => t.project === projectId);
+        return {
+            total: projectTasks.length,
+            completed: projectTasks.filter(t => t.status === 'Complete').length,
+            inProgress: projectTasks.filter(t => t.status === 'In Progress').length,
+            timeTracked: projectTasks.reduce((acc, t) => acc + (t.time_tracked || 0), 0)
+        };
+    }, [tasks]);
+
+    const handleCreateTask = async () => {
+        const selectedProjectData = selectedProject !== 'all' 
+            ? projects.find(p => p.id === selectedProject)
+            : undefined;
+
+        const newTask: Partial<Task> = {
+            title: 'New Task',
+            status: 'To Do',
+            priority: 'Medium',
+            due_date: new Date().toISOString(),
+            user_id: user?.id,
+            description: '',
+            subtasks: [],
+            time_tracked: 0,
+            project_id: selectedProjectData?.id,
+            project_name: selectedProjectData?.name,
+            tags: [],
+            dependencies: [],
+            recurrence: null,
+        };
+
+        try {
+            await addTask(newTask);
+            toast.success('Task created successfully');
+        } catch (error) {
+            toast.error('Failed to create task');
+            console.error('Error creating task:', error);
+        }
+    };
+
+    const handleDragEnd = (result: any) => {
+        if (!result.destination) return;
+        
+        const sourceIndex = result.source.index;
+        const destinationIndex = result.destination.index;
+        
+        if (sourceIndex === destinationIndex) return;
+        
+        const updatedTasks = Array.from(filteredTasks);
+        const [removed] = updatedTasks.splice(sourceIndex, 1);
+        updatedTasks.splice(destinationIndex, 0, removed);
+        
+        // Update task positions in the database
+        const updatedTask = {
+            ...removed,
+            position: destinationIndex,
+            status: result.destination.droppableId as TaskStatus // Add status update for board view
+        };
+        
+        // Update the tasks state
+        setTasks(prevTasks => {
+            const newTasks = [...prevTasks];
+            const taskIndex = newTasks.findIndex(t => t.id === removed.id);
+            if (taskIndex !== -1) {
+                newTasks.splice(taskIndex, 1);
+                newTasks.splice(destinationIndex, 0, updatedTask);
+            }
+            return newTasks;
+        });
+
+        // Persist the change
+        updateTask(updatedTask).catch(error => {
+            console.error('Failed to update task position:', error);
+            toast.error('Failed to update task position');
+            // Revert the change in case of error
+            setTasks(prevTasks => [...prevTasks]);
+        });
+    };
+
+    const handleTaskStatusChange = async (taskId: string, newStatus: TaskStatus) => {
+        try {
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            const updatedTask = {
+                ...task,
+                status: newStatus,
+                completed: newStatus === 'Complete'
+            };
+
+            await updateTask(updatedTask);
+            toast.success(`Task moved to ${newStatus}`);
+        } catch (error) {
+            console.error('Error updating task status:', error);
+            toast.error('Failed to update task status');
+        }
+    };
+
+    const clearFilters = () => {
+        setSelectedStatus('all');
+        setSelectedPriority('all');
+        setSelectedProject('all');
+        setSelectedDateRange({ from: undefined, to: undefined });
+        setSelectedTags([]);
+        setSearchQuery('');
+    };
+
+    const getActiveFilterCount = () => {
+        let count = 0;
+        if (selectedStatus !== 'all') count++;
+        if (selectedPriority !== 'all') count++;
+        if (selectedProject !== 'all') count++;
+        if (selectedDateRange.from && selectedDateRange.to) count++;
+        if (selectedTags.length > 0) count++;
+        if (searchQuery) count++;
+        return count;
+    };
+
+    const handleProjectChange = (projectId: string) => {
+        setSelectedProject(projectId);
+        if (projectId !== 'all') {
+            localStorage.setItem('lastSelectedProject', projectId);
+        } else {
+            localStorage.removeItem('lastSelectedProject');
+        }
+    };
+
+    useEffect(() => {
+        const lastProject = localStorage.getItem('lastSelectedProject');
+        if (lastProject && projects.some(p => p.id === lastProject)) {
+            setSelectedProject(lastProject);
+        }
+    }, [projects]);
+
+    useEffect(() => {
+        setMounted(true)
+    }, [])
+
+    if (!mounted) {
+        return (
+            <div className="space-y-4 p-4">
+                <div className="h-10 bg-muted/50 rounded-lg animate-pulse" />
+                <div className="h-[400px] bg-muted/30 rounded-lg animate-pulse" />
+            </div>
+        )
+    }
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            </div>
+        );
+    }
 
     return (
-        <div className="bg-card rounded-xl shadow-md overflow-hidden">
-            <div className="p-6">
-                {/* Quick ajust task with AI */}
-                <div className="flex items-center space-x-2 mb-6">
-                    <Input
-                        type="text"
-                        placeholder="What needs to be done?"
-                        value={newTask}
-                        onChange={(e) => setNewTask(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                addTask(newTask);
-                                setNewTask(''); // Clear the input field
-                            }
-                        }}
-                        className="flex-grow"
-                    />
-                    <Button
-                        onClick={() => {
-                            addTask(newTask);
-                            setNewTask('');
-                        }}
-                        size="icon">
-                        <Wand2Icon className="size-4" />
-                    </Button>
-                </div>
-                {/* Filter tasks */}
-                <div className="flex flex-wrap justify-between items-center mb-6">
-                    <div className="flex space-x-2">
-                        <Badge variant="secondary" className="bg-black text-white">
-                            Complete <span
-                                className="ml-1 px-1 py-0.5 rounded-full bg-green-500 text-xs">{getStatusCount('Complete')}</span>
-                        </Badge>
-                        <Badge variant="outline">
-                            To Do <span
-                                className="ml-1 px-1 py-0.5 rounded-full bg-gray-200 text-xs">{getStatusCount('To Do')}</span>
-                        </Badge>
-                        <Badge variant="outline">
-                            In Review <span
-                                className="ml-1 px-1 py-0.5 rounded-full bg-gray-200 text-xs">{getStatusCount('In Review')}</span>
-                        </Badge>
-                        <Badge variant="outline">
-                            In Progress <span
-                                className="ml-1 px-1 py-0.5 rounded-full bg-gray-200 text-xs">{getStatusCount('In Progress')}</span>
-                        </Badge>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <SearchBar search={search} setSearch={setSearch} />
-                        <Input
-                            type="text"
-                            placeholder="Search tasks..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="hidden"
-                        />
-                        <Select value={filter} onValueChange={setFilter}>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Filter by status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All</SelectItem>
-                                <SelectItem value="To Do">To Do</SelectItem>
-                                <SelectItem value="In Progress">In Progress</SelectItem>
-                                <SelectItem value="In Review">In Review</SelectItem>
-                                <SelectItem value="Complete">Complete</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <Select
-                            value={selectedProject ? selectedProject.toString() : 'all'}
-                            onValueChange={(value) => setSelectedProject(value !== 'all' ? parseInt(value) : null)}
-                        >
-
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Filter by project" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Projects</SelectItem>
-                                {projects.map(project => (
-                                    <SelectItem key={project.id}
-                                        value={project.id.toString()}>{project.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <Switch
-                            checked={showCompleted}
-                            onCheckedChange={setShowCompleted}
-                            id="show-completed"
-                        />
-                        <Label htmlFor="show-completed">Show Completed</Label>
-                    </div>
-                </div>
-                {/* Task List */}
-                <DragDropContext onDragEnd={onDragEnd}>
-                    <Droppable droppableId="tasks">
-                        {(provided) => (
-                            <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4">
-                                {filteredTasks.map((task, index) => (
-                                    <TaskItem
-                                        key={task.id}
-                                        task={task}
-                                        index={index}
-                                        projects={projects}
-                                        toggleTaskStatus={toggleTaskStatus}
-                                        deleteTask={deleteTask}
-                                        setEditingTask={setEditingTask}
-                                        updateTask={updateTask}
-                                        generateSubtasks={() => generateSubtasks(task.id)}
-                                        activeTimer={activeTimer}
-                                        toggleTimer={toggleTimer}
-                                        formatTime={formatTime}
-                                    />
-                                ))}
-                                {provided.placeholder}
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                        {selectedProject !== 'all' && (
+                            <div className="flex items-center">
+                                <Badge 
+                                    variant="outline"
+                                    className="flex items-center gap-1 px-3 py-1"
+                                    style={{
+                                        backgroundColor: projects.find(p => p.id === selectedProject)?.color,
+                                        color: '#fff'
+                                    }}
+                                >
+                                    <FolderIcon className="w-4 h-4" />
+                                    {selectedProject}
+                                </Badge>
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => setSelectedProject('all')}
+                                    className="ml-2"
+                                >
+                                    Clear
+                                </Button>
                             </div>
                         )}
-                    </Droppable>
-                </DragDropContext>
+                        <h2 className="text-2xl font-semibold tracking-tight">Tasks</h2>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        {filteredTasks.length} tasks • {tasksByStatus['Complete'].length} completed
+                        {selectedProject !== 'all' && (
+                            <>
+                                {' • '}
+                                {getProjectStats(selectedProject).inProgress} in progress
+                                {' • '}
+                                {formatTime(getProjectStats(selectedProject).timeTracked)} tracked
+                            </>
+                        )}
+                    </p>
+                </div>
 
+                <div className="flex items-center gap-3">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search tasks..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-9 w-[250px]"
+                        />
+                    </div>
+
+                    <Popover open={showFilters} onOpenChange={setShowFilters}>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" className="gap-2">
+                                <SlidersHorizontal className="h-4 w-4" />
+                                Filters
+                                {getActiveFilterCount() > 0 && (
+                                    <Badge variant="secondary" className="ml-1">
+                                        {getActiveFilterCount()}
+                                    </Badge>
+                                )}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[320px] p-4" align="end">
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <h4 className="font-medium leading-none">Project</h4>
+                                    <Select value={selectedProject} onValueChange={handleProjectChange}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select project" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem key="all" value="all">All Projects</SelectItem>
+                                            {projects.map(project => (
+                                                <SelectItem 
+                                                    key={`project-${project.id}`}
+                                                    value={project.id}
+                                                >
+                                                    <div className="flex items-center">
+                                                        <div
+                                                            className="w-2 h-2 rounded-full mr-2"
+                                                            style={{ backgroundColor: project.color }}
+                                                        />
+                                                        {project.name}
+                                                    </div>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <h4 className="font-medium leading-none">Status</h4>
+                                    <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select status" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">All Statuses</SelectItem>
+                                            <SelectItem value="To Do">To Do</SelectItem>
+                                            <SelectItem value="In Progress">In Progress</SelectItem>
+                                            <SelectItem value="In Review">In Review</SelectItem>
+                                            <SelectItem value="Complete">Complete</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <h4 className="font-medium leading-none">Priority</h4>
+                                    <Select value={selectedPriority} onValueChange={setSelectedPriority}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select priority" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">All Priorities</SelectItem>
+                                            <SelectItem value="Low">Low</SelectItem>
+                                            <SelectItem value="Medium">Medium</SelectItem>
+                                            <SelectItem value="High">High</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <h4 className="font-medium leading-none">Due Date</h4>
+                                    <DatePickerWithRange 
+                                        value={selectedDateRange}
+                                        onChange={setSelectedDateRange}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <h4 className="font-medium leading-none">Tags</h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        {allTags.map(tag => (
+                                            <Badge
+                                                key={`tag-${tag}`}
+                                                variant={selectedTags.includes(tag) ? "default" : "outline"}
+                                                className="cursor-pointer"
+                                                onClick={() => {
+                                                    setSelectedTags(prev =>
+                                                        prev.includes(tag)
+                                                            ? prev.filter(t => t !== tag)
+                                                            : [...prev, tag]
+                                                    );
+                                                }}
+                                            >
+                                                {tag}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <Separator />
+
+                                <div className="flex justify-between">
+                                    <Button
+                                        variant="ghost"
+                                        onClick={clearFilters}
+                                        className="text-sm"
+                                    >
+                                        Reset filters
+                                    </Button>
+                                    <Button
+                                        variant="default"
+                                        onClick={() => setShowFilters(false)}
+                                        className="text-sm"
+                                    >
+                                        Apply filters
+                                    </Button>
+                                </div>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
+
+                    <Button onClick={handleCreateTask}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Task
+                    </Button>
+                </div>
             </div>
+
+            <Tabs value={view} onValueChange={(v) => setView(v as View)} className="w-full">
+                <TabsList className="grid w-full grid-cols-4 lg:w-[400px]">
+                    <TabsTrigger value="board" className="flex items-center gap-2">
+                        <LayoutGrid className="w-4 h-4" />
+                        Board
+                    </TabsTrigger>
+                    <TabsTrigger value="list" className="flex items-center gap-2">
+                        <List className="w-4 h-4" />
+                        List
+                    </TabsTrigger>
+                    <TabsTrigger value="calendar" className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        Calendar
+                    </TabsTrigger>
+                    <TabsTrigger value="gantt" className="flex items-center gap-2">
+                        <GanttChart className="w-4 h-4" />
+                        Gantt
+                    </TabsTrigger>
+                </TabsList>
+            </Tabs>
+
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={view}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.2 }}
+                >
+                    {view === 'list' && (
+                        <ListView
+                            key="list-view"
+                            tasks={filteredTasks}
+                            projects={projects}
+                            onTaskUpdate={async (taskId, updates) => {
+                                const task = tasks.find(t => t.id === taskId);
+                                if (task) {
+                                    await updateTask({ ...task, ...updates });
+                                }
+                            }}
+                            onTaskDelete={deleteTask}
+                            setEditingTask={setEditingTask}
+                            onAddTask={addTask}
+                            generateSubtasks={generateSubtasks}
+                        />
+                    )}
+                    {view === 'calendar' && (
+                        <CalendarView
+                            key="calendar-view"
+                            tasks={filteredTasks}
+                            onTaskUpdate={updateTask}
+                        />
+                    )}
+                    {view === 'gantt' && (
+                        <GanttView
+                            key="gantt-view"
+                            tasks={filteredTasks}
+                            onTaskUpdate={updateTask}
+                        />
+                    )}
+                    {view === 'board' && (
+                        <BoardView
+                            key="board-view"
+                            tasks={filteredTasks}
+                            onTaskUpdate={async (taskId, updates) => {
+                                const task = tasks.find(t => t.id === taskId);
+                                if (task) {
+                                    await updateTask({ ...task, ...updates });
+                                }
+                            }}
+                            onTaskDelete={deleteTask}
+                            onTaskStatusChange={handleTaskStatusChange}
+                            projects={projects}
+                            onAddTask={addTask}
+                        />
+                    )}
+                </motion.div>
+            </AnimatePresence>
         </div>
     );
 }

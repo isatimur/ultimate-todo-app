@@ -10,7 +10,15 @@ interface WeekViewProps {
 }
 
 export function WeekView({ currentDate, tasks, onTaskClick, getTaskColor }: WeekViewProps) {
-  const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const weekDays = [
+    { key: 'sunday', label: 'Sun' },
+    { key: 'monday', label: 'Mon' },
+    { key: 'tuesday', label: 'Tue' },
+    { key: 'wednesday', label: 'Wed' },
+    { key: 'thursday', label: 'Thu' },
+    { key: 'friday', label: 'Fri' },
+    { key: 'saturday', label: 'Sat' }
+  ]
   const timeSlots = Array.from({ length: 24 }, (_, i) => i)
 
   const startOfWeek = new Date(currentDate)
@@ -28,8 +36,8 @@ export function WeekView({ currentDate, tasks, onTaskClick, getTaskColor }: Week
         Time
       </div>
       {weekDays.map((day, index) => (
-        <div key={day} className="bg-background p-3 text-center text-sm font-medium text-muted-foreground">
-          {day} {weekDates[index].getDate()}
+        <div key={day.key} className="bg-background p-3 text-center text-sm font-medium text-muted-foreground">
+          {day.label} {weekDates[index].getDate()}
         </div>
       ))}
       {timeSlots.map((hour) => (

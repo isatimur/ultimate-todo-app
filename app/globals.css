@@ -1,68 +1,911 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
+ 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+    /* Base Colors */
+    --background: 210 40% 98%;
+    --foreground: 222.2 84% 4.9%;
+    
+    /* Layout Variables */
+    --header-height: 3.5rem;
+    --sidebar-width: 16rem;
+    --sidebar-width-collapsed: 4rem;
+    
+    /* Card & UI Elements */
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
+    --popover-foreground: 222.2 84% 4.9%;
+    
+    /* Primary Brand Color - Vibrant Blue */
+    --primary: 224 76% 48%;
+    --primary-foreground: 210 40% 98%;
+    
+    /* Secondary Colors */
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 262 83% 58%;
+    --accent-foreground: 210 40% 98%;
+    
+    /* Functional Colors */
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
+    --destructive-foreground: 210 40% 98%;
+    --success: 142 76% 36%;
+    --success-foreground: 210 40% 98%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 210 40% 98%;
+    --info: 199 89% 48%;
+    --info-foreground: 210 40% 98%;
+    
+    /* UI Elements */
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 224 76% 48%;
+    --radius: 0.75rem;
+    
+    /* Task Status Colors */
+    --status-todo: 224 76% 48%;
+    --status-in-progress: 38 92% 50%;
+    --status-in-review: 262 83% 58%;
+    --status-complete: 142 76% 36%;
+    
+    /* Priority Colors */
+    --priority-low: 142 76% 36%;
+    --priority-medium: 38 92% 50%;
+    --priority-high: 0 84.2% 60.2%;
+    --priority-urgent: 0 84.2% 60.2%;
+    
+    /* Sidebar Variables */
+    --sidebar-bg: hsl(0 0% 100%);
+    --sidebar-border: hsl(214.3 31.8% 91.4%);
+    --sidebar-foreground: hsl(222.2 84% 4.9%);
+    
+    /* Animation Durations */
+    --animation-fast: 150ms;
+    --animation-normal: 250ms;
+    --animation-slow: 350ms;
   }
+ 
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
+    /* Base Colors - Dark Mode */
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    
+    /* Card & UI Elements - Dark Mode */
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    
+    /* Primary Brand Color - Vibrant Blue (Adjusted for Dark Mode) */
+    --primary: 224 70% 58%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    
+    /* Secondary Colors - Dark Mode */
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 262 70% 64%;
+    --accent-foreground: 210 40% 98%;
+    
+    /* Functional Colors - Dark Mode */
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --destructive-foreground: 210 40% 98%;
+    --success: 142 70% 29%;
+    --success-foreground: 210 40% 98%;
+    --warning: 38 92% 40%;
+    --warning-foreground: 210 40% 98%;
+    --info: 199 89% 38%;
+    --info-foreground: 210 40% 98%;
+    
+    /* UI Elements - Dark Mode */
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+    
+    /* Task Status Colors - Dark Mode */
+    --status-todo: 224 70% 58%;
+    --status-in-progress: 38 92% 40%;
+    --status-in-review: 262 70% 64%;
+    --status-complete: 142 70% 29%;
+    
+    /* Priority Colors - Dark Mode */
+    --priority-low: 142 70% 29%;
+    --priority-medium: 38 92% 40%;
+    --priority-high: 0 62.8% 30.6%;
+    --priority-urgent: 0 62.8% 30.6%;
+    
+    /* Dark mode Sidebar Variables */
+    --sidebar-bg: hsl(222.2 84% 4.9%);
+    --sidebar-border: hsl(217.2 32.6% 17.5%);
+    --sidebar-foreground: hsl(210 40% 98%);
   }
 }
-
+ 
 @layer base {
   * {
     @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
+
+/* Task Animation Effects */
+.task-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.task-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.task-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.task-exit-active {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 250ms ease-in, transform 250ms cubic-bezier(0.34, 0, 0.64, 1);
+}
+
+/* Glass Morphism Effects */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+}
+
+.dark .glass-panel {
+  background: rgba(30, 30, 35, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Sidebar Styles */
+.sidebar {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, width;
+  background-color: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
+  z-index: 40;
+  height: calc(100vh - var(--header-height, 3.5rem));
+  position: fixed;
+  top: var(--header-height, 3.5rem);
+  left: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sidebar[data-collapsed="true"] {
+  width: var(--sidebar-width-collapsed);
+}
+
+.sidebar[data-collapsed="true"] .sidebar-header span,
+.sidebar[data-collapsed="true"] .sidebar-content span {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 200ms ease-out;
+}
+
+/* Navigation Item Animations */
+.nav-item {
+  position: relative;
+  transition: all 200ms ease;
+  border-radius: var(--radius);
+}
+
+.nav-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 3px;
+  background: linear-gradient(to bottom, hsl(var(--primary)), hsl(var(--accent)));
+  transform: scaleY(0);
+  transition: transform 200ms ease;
+}
+
+.nav-item[data-active="true"]::before {
+  transform: scaleY(1);
+}
+
+.nav-item[data-active="true"] {
+  background-color: hsl(var(--accent)/0.1);
+  color: hsl(var(--accent-foreground));
+}
+
+/* Quick Actions */
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(32px, 1fr));
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+
+.quick-action-button {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  transition: all 200ms ease;
+  background: linear-gradient(135deg, hsl(var(--background)), hsl(var(--card)));
+  border: 1px solid hsl(var(--border));
+}
+
+.quick-action-button:hover {
+  background: linear-gradient(135deg, hsl(var(--accent)/0.1), hsl(var(--primary)/0.1));
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* Notification Badge */
+.notification-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, hsl(var(--destructive)), hsl(var(--destructive)/0.8));
+  color: hsl(var(--destructive-foreground));
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 18px;
+  text-align: center;
+  z-index: 1;
+  animation: pulse 2s infinite;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(var(--destructive), 0.4);
+  }
+  70% {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 6px rgba(var(--destructive), 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(var(--destructive), 0);
+  }
+}
+
+/* Status and Priority Badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.status-todo {
+  background-color: hsl(var(--status-todo)/0.1);
+  color: hsl(var(--status-todo));
+  border: 1px solid hsl(var(--status-todo)/0.2);
+}
+
+.status-in-progress {
+  background-color: hsl(var(--status-in-progress)/0.1);
+  color: hsl(var(--status-in-progress));
+  border: 1px solid hsl(var(--status-in-progress)/0.2);
+}
+
+.status-in-review {
+  background-color: hsl(var(--status-in-review)/0.1);
+  color: hsl(var(--status-in-review));
+  border: 1px solid hsl(var(--status-in-review)/0.2);
+}
+
+.status-complete {
+  background-color: hsl(var(--status-complete)/0.1);
+  color: hsl(var(--status-complete));
+  border: 1px solid hsl(var(--status-complete)/0.2);
+}
+
+.priority-low {
+  background-color: hsl(var(--priority-low)/0.1);
+  color: hsl(var(--priority-low));
+  border: 1px solid hsl(var(--priority-low)/0.2);
+}
+
+.priority-medium {
+  background-color: hsl(var(--priority-medium)/0.1);
+  color: hsl(var(--priority-medium));
+  border: 1px solid hsl(var(--priority-medium)/0.2);
+}
+
+.priority-high, .priority-urgent {
+  background-color: hsl(var(--priority-high)/0.1);
+  color: hsl(var(--priority-high));
+  border: 1px solid hsl(var(--priority-high)/0.2);
+}
+
+/* User Profile */
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: var(--radius);
+  transition: all 200ms ease;
+}
+
+.user-profile:hover {
+  background-color: hsl(var(--accent)/0.1);
+  transform: translateY(-1px);
+}
+
+.user-profile-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-profile-name {
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.user-profile-email {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Section Headers */
+.section-header {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+  padding: 0.5rem 1rem;
+  margin-top: 1rem;
+  letter-spacing: 0.05em;
+  position: relative;
+}
+
+.section-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 1rem;
+  right: 1rem;
+  height: 1px;
+  background: linear-gradient(to right, hsl(var(--border)), transparent);
+}
+
+/* Hover Effects */
+.nav-item:hover {
+  background-color: hsl(var(--accent)/0.1);
+  transform: translateX(2px);
+}
+
+.nav-item[data-active="true"] {
+  background-color: hsl(var(--accent)/0.15);
+  color: hsl(var(--accent-foreground));
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Scrollbar Styling */
+.sidebar-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted-foreground)/0.2);
+  border-radius: 2px;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--muted-foreground)/0.3);
+}
+
+/* Custom Button Styles */
+.btn-gradient {
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+  color: hsl(var(--primary-foreground));
+  border: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: all 200ms ease;
+}
+
+.btn-gradient:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  filter: brightness(1.05);
+}
+
+.btn-gradient:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  filter: brightness(0.95);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 50;
+    transform: translateX(-100%);
+    transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: none;
+  }
+  
+  .sidebar[data-mobile-open="true"] {
+    transform: translateX(0);
+    box-shadow: 10px 0 25px rgba(0, 0, 0, 0.1);
+  }
+  
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 40;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 300ms ease;
+  }
+  
+  .sidebar-overlay[data-visible="true"] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+/* Dark Mode Adjustments */
+[data-theme="dark"] .sidebar {
+  box-shadow: 1px 0 10px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .nav-item[data-active="true"] {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .notification-badge {
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+
+/* Animation Keyframes */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn var(--animation-normal) cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn var(--animation-normal) ease-out;
+}
+
+/* Task Card Styles */
+.task-card {
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  transition: all var(--animation-normal) ease;
+  overflow: hidden;
+}
+
+.task-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-color: hsl(var(--primary)/0.3);
+}
+
+.dark .task-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.task-card-header {
+  padding: 0.75rem;
+  border-bottom: 1px solid hsl(var(--border));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.task-card-body {
+  padding: 0.75rem;
+}
+
+.task-card-footer {
+  padding: 0.75rem;
+  border-top: 1px solid hsl(var(--border));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Quick Capture Field Styles */
+.quick-capture-field {
+  transition: all var(--animation-normal) ease;
+  border-radius: 9999px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--background));
+}
+
+.quick-capture-field:focus-within {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 2px hsl(var(--primary)/0.2);
+}
+
+.dark .quick-capture-field:focus-within {
+  box-shadow: 0 0 0 2px hsl(var(--primary)/0.3);
+}
+
+/* Voice Task Sidebar Styles */
+.voice-task-sidebar {
+  background: linear-gradient(135deg, hsl(var(--background)), hsl(var(--card)));
+  border-left: 1px solid hsl(var(--border));
+}
+
+.dark .voice-task-sidebar {
+  background: linear-gradient(135deg, hsl(var(--background)), hsl(var(--card)/0.8));
+}
+
+/* Keyboard Shortcuts Dialog Styles */
+.keyboard-shortcut-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid hsl(var(--border)/0.5);
+}
+
+.keyboard-shortcut-item:last-child {
+  border-bottom: none;
+}
+
+.keyboard-shortcut-keys {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.keyboard-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.25rem;
+  border-radius: 0.25rem;
+  background: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+  font-size: 0.75rem;
+  font-weight: 500;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+}
+
+.dark .keyboard-key {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Improved Header Styles */
+.app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s ease-in-out;
+  background: linear-gradient(to bottom, 
+    hsl(var(--background)/0.95), 
+    hsl(var(--background)/0.9)
+  );
+  border-bottom: 1px solid hsl(var(--border)/0.7);
+}
+
+.app-header.scrolled {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  background: linear-gradient(to bottom, 
+    hsl(var(--background)), 
+    hsl(var(--background)/0.98)
+  );
+}
+
+.dark .app-header {
+  background: linear-gradient(to bottom, 
+    hsl(var(--background)/0.9), 
+    hsl(var(--background)/0.85)
+  );
+}
+
+.dark .app-header.scrolled {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(to bottom, 
+    hsl(var(--background)/0.95), 
+    hsl(var(--background)/0.9)
+  );
+}
+
+/* Content Area Adjustments */
+.main-content {
+  padding-top: calc(var(--header-height) + 1rem);
+  min-height: 100vh;
+  transition: padding-left 0.3s ease-in-out;
+}
+
+/* Calendar View Specific Styles */
+.calendar-container {
+  padding-top: 1.5rem;
+  padding-bottom: 2rem;
+}
+
+.calendar-header {
+  margin-bottom: 1.5rem;
+  padding: 0 1rem;
+}
+
+.calendar-grid {
+  padding: 0 0.5rem;
+}
+
+.calendar-day {
+  padding: 0.5rem;
+  min-height: 6rem;
+  border-radius: var(--radius);
+  transition: all 0.2s ease;
+}
+
+.calendar-day:hover {
+  background-color: hsl(var(--secondary)/0.5);
+}
+
+/* Improved Mobile Responsiveness */
+@media (max-width: 768px) {
+  .app-header .container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  
+  .calendar-container {
+    padding-top: 1rem;
+  }
+  
+  .calendar-header {
+    margin-bottom: 1rem;
+  }
+  
+  .calendar-day {
+    min-height: 4rem;
+  }
+}
+
+/* Sidebar Toggle Animation */
+.sidebar-toggle {
+  transition: transform 0.3s ease;
+}
+
+.sidebar-toggle[data-active="true"] {
+  transform: rotate(180deg);
+}
+
+/* Improved Sidebar Mobile Behavior */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+    box-shadow: none;
+  }
+  
+  .sidebar[data-open="true"] {
+    transform: translateX(0);
+    box-shadow: 0 0 25px rgba(0, 0, 0, 0.15);
+  }
+  
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 39;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  
+  .sidebar-backdrop[data-open="true"] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+/* Improved Content Spacing */
+.content-container {
+  padding: 1.5rem;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Month Navigation Controls */
+.month-navigation {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.month-navigation-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+  transition: all 0.2s ease;
+}
+
+.month-navigation-button:hover {
+  background: hsl(var(--primary)/0.1);
+  color: hsl(var(--primary));
+  transform: scale(1.05);
+}
+
+.month-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0.5rem;
+}
+
+/* Ensure content doesn't overflow horizontally */
+.overflow-guard {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Improved layout and transitions */
+.task-card {
+  transition: all 0.2s ease-in-out;
+}
+
+.task-card:hover {
+  transform: translateY(-1px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+/* Improved scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Hide scrollbar for cleaner UI in certain elements */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Smooth transitions for all interactive elements */
+button, a, .card, .badge, .checkbox {
+  transition: all 0.15s ease;
+}
+
+/* Improved focus styles */
+*:focus-visible {
+  outline: 2px solid hsl(var(--primary) / 0.5);
+  outline-offset: 2px;
+}
+
+/* Custom Scrollbar Styles */
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .scrollbar-thumb-rounded::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+  }
+  
+  /* Webkit scrollbar styles */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.2);
+    border-radius: 20px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.3);
+  }
+  
+  /* Firefox scrollbar styles */
+  * {
+    scrollbar-color: hsl(var(--muted-foreground) / 0.2) transparent;
+    scrollbar-width: thin;
+  }
+}
+

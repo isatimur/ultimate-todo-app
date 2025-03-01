@@ -1,6 +1,6 @@
 import React from 'react'
 import { Task } from '@/lib/types'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Pencil, Trash2, X } from 'lucide-react'
@@ -23,6 +23,9 @@ export function TaskDetails({ task, onClose, onEdit, onDelete }: TaskDetailsProp
               <X className="h-4 w-4" />
             </Button>
           </DialogTitle>
+          <DialogDescription>
+            View and manage task details. You can edit or delete the task using the buttons below.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div>

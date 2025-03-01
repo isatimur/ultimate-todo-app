@@ -10,6 +10,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 import { motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface GanttViewProps {
   tasks: Task[]
@@ -81,20 +82,33 @@ export function GanttView({ tasks, onUpdateTask }: GanttViewProps) {
     return (taskDuration / totalUnits) * 100
   }
 
-  const handleDragEnd = (result: DropResult) => {
-    if (!result.destination) return
+  const handleDragEnd = async (result: DropResult) => {
+    if (!result.destination) return;
 
-    const taskId = result.draggableId
-    const task = tasks.find(t => t.id === taskId)
-    if (!task) return
+    const draggedTaskId = result.draggableId;
+    const draggedTask = tasks.find(t => t.id === draggedTaskId);
+    if (!draggedTask) return;
 
-    const totalUnits = getUnitsBetween(visibleStartDate, visibleEndDate)
-    const unitsPerPixel = totalUnits / (containerRef.current?.clientWidth || 1)
-    const unitsMoved = Math.round(result.destination.index * unitsPerPixel)
+    const totalUnits = getUnitsBetween(visibleStartDate, visibleEndDate);
+    const unitsPerPixel = totalUnits / (containerRef.current?.clientWidth || 1);
+    const unitsMoved = Math.round(result.destination.index * unitsPerPixel);
 
-    const newStartDate = addDays(new Date(task.date), unitsMoved)
-    onUpdateTask(taskId, { date: newStartDate.toISOString().split('T')[0] })
-  }
+    const newStartDate = addDays(new Date(draggedTask.date), unitsMoved);
+    
+    // Ensure we update both date and due_date to maintain task duration
+    const duration = draggedTask.duration || 1;
+    const newDueDate = addDays(newStartDate, duration);
+
+    try {
+      await onUpdateTask(draggedTaskId, { 
+        date: newStartDate.toISOString().split('T')[0],
+        due_date: newDueDate.toISOString().split('T')[0]
+      });
+    } catch (error: unknown) {
+      console.error('Failed to update task dates:', error);
+      toast.error('Failed to update task dates');
+    }
+  };
 
   const handleZoomIn = () => {
     if (zoomLevel === 'months') setZoomLevel('weeks')
@@ -163,7 +177,11 @@ export function GanttView({ tasks, onUpdateTask }: GanttViewProps) {
               {(provided) => (
                 <div ref={provided.innerRef} {...provided.droppableProps} className="flex-1">
                   {tasks.map((task, index) => (
-                    <Draggable key={task.id} draggableId={task.id} index={index}>
+                    <Draggable
+                      key={task.id}
+                      draggableId={String(task.id)}
+                      index={index}
+                    >
                       {(provided, snapshot) => (
                         <div
                           ref={provided.innerRef}

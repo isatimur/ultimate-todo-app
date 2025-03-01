@@ -1,79 +1,204 @@
-# Ultimate Todo App
+# Ultima Todo App v2.2.0
 
-## Overview
-
-The Ultimate Todo App is a comprehensive task management solution built with Next.js, React, and Supabase. It offers a rich set of features to help users organize, track, and complete their tasks efficiently.
+A modern, feature-rich task management application built with Next.js 14, TypeScript, and Supabase.
 
 ## Features
 
-- **Task Management**: Create, edit, delete, and organize tasks
-- **Subtasks**: Break down complex tasks into manageable subtasks
-- **Project Organization**: Group tasks by projects
-- **AI-Powered Task Generation**: Use AI to generate subtasks and get task suggestions
-- **Pomodoro Timer**: Built-in timer for focused work sessions
-- **Analytics**: Visualize task completion and productivity trends
-- **Dark Mode**: Toggle between light and dark themes for comfortable viewing
-- **Responsive Design**: Works seamlessly across desktop and mobile devices
+- 📅 Interactive Timeline View
+  - Drag-and-drop task scheduling
+  - Resizable task durations
+  - 30-minute precision time slots
+  - Visual task organization
 
-## Technology Stack
+- ✨ Modern UX
+  - Clean, minimal interface
+  - Smooth animations and transitions
+  - Responsive design with optimized layouts
+  - Dark/Light mode support
+  - Collapsible sidebar with persistent state
 
-- **Frontend**: Next.js, React, TypeScript
-- **Backend**: Supabase (PostgreSQL database)
-- **State Management**: React Hooks (useState, useEffect, useCallback)
+- 🎯 Task Management
+  - Priority levels
+  - Status tracking
+  - Duration management
+  - Quick task creation
+  - AI-powered task suggestions
+  - Keyboard shortcuts
+  - Rich text descriptions
+  - Subtasks and dependencies
+
+- 🤖 AI Assistant (New!)
+  - Agentic task creation
+  - Natural language task parsing
+  - Smart scheduling suggestions
+  - Context-aware task organization
+  - Automated priority assignment
+
+## Tech Stack
+
+- **Framework**: Next.js 14 (App Router)
+- **Language**: TypeScript
+- **Database**: Supabase
 - **Styling**: Tailwind CSS
-- **UI Components**: Custom components built with Radix UI primitives
-- **Drag and Drop**: @hello-pangea/dnd
+- **Components**: Shadcn UI
+- **State Management**: React Hooks
+- **DnD**: @hello-pangea/dnd
 - **Date Handling**: date-fns
-- **Icons**: Lucide React
+- **AI Features**: OpenAI API
+- **Email**: Resend
+- **Animations**: Framer Motion
+
+## Prerequisites
+
+Before you begin, ensure you have:
+- Node.js 18+ installed
+- A Supabase account (free tier works)
+- (Optional) OpenAI API key for AI features
+- (Optional) Resend API key for email notifications
+
+## Getting Started
+
+1. Clone the repository
+```bash
+git clone https://github.com/yourusername/ultima-todo-app.git
+cd ultima-todo-app
+```
+
+2. Install dependencies
+```bash
+npm install
+# or
+pnpm install
+```
+
+3. Set up environment variables
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local` with your credentials:
+- Get Supabase credentials from your project settings
+- (Optional) Add OpenAI API key for AI features
+- (Optional) Add Resend API key for emails
+
+4. Set up the database
+- Create a new Supabase project
+- Run the migration scripts from `supabase/migrations/`
+- Enable Row Level Security (RLS)
+- Set up authentication providers
+
+5. Start the development server
+```bash
+npm run dev
+# or
+pnpm dev
+```
+
+Visit `http://localhost:3000` to see the app.
+
+## Database Schema
+
+The app uses the following main tables:
+- `tasks`: Main tasks table
+- `projects`: Project organization
+- `task_dependencies`: Task relationships
+- `profiles`: User profiles
+- `user_settings`: User preferences and settings
+
+See `supabase/migrations/` for complete schema details.
 
 ## Key Components
 
-### UltimateTodoAppComponent
+### Layout System
+- Responsive layout with collapsible sidebar
+- Optimized content positioning
+- Consistent spacing and alignment
+- Smooth transitions between views
 
-The main component that orchestrates the entire application. It manages global state and contains key functionalities such as task management, project handling, and AI integrations.
+### TimelineView
+- Main timeline interface
+- Handles task organization
+- Drag-and-drop functionality
+- 48 time slots (30-minute intervals)
 
-### Tasks Component
+### TaskForm
+- Rich task creation interface
+- AI-powered suggestions
+- Template support
+- Quick actions
 
-Renders the list of tasks and provides filtering and search capabilities. It also handles drag-and-drop functionality for task reordering.
+### AI Assistant
+- Natural language processing for task creation
+- Context-aware task suggestions
+- Automated scheduling based on workload
+- Priority inference from task description
 
-### TaskItem Component
+### Settings
+- Comprehensive user preferences
+- Theme customization
+- Notification management
+- Privacy controls
+- Account management
 
-Represents individual task items with subtask management, status toggling, and timer functionality.
+## AI Agentic Approach
 
-## Setup and Installation
+The app implements an agentic approach to task management:
 
-1. Clone the repository
-2. Install dependencies: `npm install`
-3. Set up Supabase and configure environment variables
-4. Run the development server: `npm run dev`
+1. **Task Creation Agent**
+   - Parses natural language input
+   - Extracts key task parameters (deadline, priority, etc.)
+   - Suggests appropriate projects and tags
 
-## API Routes
+2. **Scheduling Agent**
+   - Analyzes existing workload
+   - Suggests optimal time slots
+   - Prevents overcommitment
 
-The application uses Hono for API routing. Key routes include:
+3. **Priority Agent**
+   - Infers task importance
+   - Balances urgent vs. important tasks
+   - Adapts to user behavior patterns
 
-- `/api/parse`: For parsing task input
-- `/api/taskBreakdown`: For AI-powered task breakdown
-- `/api/aiSuggestion`: For generating AI suggestions
+4. **Reminder Agent**
+   - Provides smart notifications
+   - Adjusts timing based on task proximity
+   - Considers user's working hours
 
 ## Contributing
 
-Contributions are welcome! Please follow these steps:
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
 1. Fork the repository
-2. Create a new branch: `git checkout -b feature/your-feature-name`
-3. Make your changes and commit them
-4. Push to your fork and submit a pull request
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before contributing.
+
+## Security
+
+- All API keys should be kept private
+- Use environment variables for sensitive data
+- Follow Supabase security best practices
+- Enable RLS for all tables
+- Regularly update dependencies
 
 ## License
 
-[MIT License](LICENSE)
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Acknowledgements
+## Support
 
-- [Next.js](https://nextjs.org/)
-- [React](https://reactjs.org/)
-- [Supabase](https://supabase.io/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [Radix UI](https://www.radix-ui.com/)
-- [Lucide Icons](https://lucide.dev/)
-- [Hono](https://hono.dev/)
+- Create an issue for bug reports
+- Join our Discord community (coming soon)
+- Check the [documentation](docs/) for guides
+
+## Versioning
+
+We use SemVer for versioning:
+- Major (X.0.0): Breaking changes
+- Minor (0.X.0): New features
+- Patch (0.0.X): Bug fixes
+
+Current version: 2.2.0

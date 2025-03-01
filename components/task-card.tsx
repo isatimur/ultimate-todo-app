@@ -7,7 +7,7 @@ import { MessageSquare, MoreHorizontal } from 'lucide-react'
 import Image from "next/image"
 import type { Task } from "@/lib/types"
 import { useDraggable } from "@dnd-kit/core"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog"
 
 interface TaskCardProps {
   task: Task
@@ -80,6 +80,9 @@ export function TaskCard({ task, columnId }: TaskCardProps) {
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{task.title}</DialogTitle>
+          <DialogDescription>
+            View task details including priority, category, and other information.
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="flex gap-2">

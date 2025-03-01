@@ -24,6 +24,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { formatDateWithFallback } from '@/lib/utils';
 
 interface TeamManagementDialogProps {
     team: Team;
@@ -149,7 +150,7 @@ export default function TeamManagementDialog({
                                                             </Badge>
                                                             <span className="text-xs text-muted-foreground flex items-center">
                                                                 <Clock className="h-3 w-3 mr-1" />
-                                                                Joined {new Date(member.joined_at).toLocaleDateString()}
+                                                                Joined {formatDateWithFallback(member.joined_at)}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -207,7 +208,7 @@ export default function TeamManagementDialog({
                                                                 </Badge>
                                                                 <span className="text-xs text-muted-foreground flex items-center">
                                                                     <Clock className="h-3 w-3 mr-1" />
-                                                                    Invited {new Date(invitation.invited_at).toLocaleDateString()}
+                                                                    Invited {formatDateWithFallback(invitation.invited_at)}
                                                                 </span>
                                                             </div>
                                                         </div>

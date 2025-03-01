@@ -1,14 +1,31 @@
+"use client"
+
 import React from 'react'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface MiniMonthProps {
   currentDate: Date
-  selectedDate: Date
+  selectedDate: Date | null
   onDateSelect: (date: Date) => void
+  onPrevMonth: () => void
+  onNextMonth: () => void
 }
 
-export function MiniMonth({ currentDate, selectedDate, onDateSelect }: MiniMonthProps) {
+export function MiniMonth({
+  currentDate,
+  selectedDate,
+  onDateSelect,
+  onPrevMonth,
+  onNextMonth
+}: MiniMonthProps) {
+  const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ]
+
   const getDaysInMonth = (date: Date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
   }
@@ -17,66 +34,72 @@ export function MiniMonth({ currentDate, selectedDate, onDateSelect }: MiniMonth
     return new Date(date.getFullYear(), date.getMonth(), 1).getDay()
   }
 
-  const daysInMonth = getDaysInMonth(currentDate)
-  const firstDayOfMonth = getFirstDayOfMonth(currentDate)
-  const monthYear = currentDate.toLocaleString('default', { month: 'short', year: 'numeric' })
+  const renderCalendarDays = () => {
+    const daysInMonth = getDaysInMonth(currentDate)
+    const firstDayOfMonth = getFirstDayOfMonth(currentDate)
+    const days = []
 
-  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1)
-  const blanks = Array.from({ length: firstDayOfMonth }, (_, i) => null)
-  const allDays = [...blanks, ...days]
+    // Add empty cells for days before the first day of the month
+    for (let i = 0; i < firstDayOfMonth; i++) {
+      days.push(<div key={`empty-${i}`} className="h-8" />)
+    }
 
-  const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+    // Add cells for each day of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
+      const isToday = date.toDateString() === new Date().toDateString()
+      const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString()
 
-  const handlePrevMonth = () => {
-    onDateSelect(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))
-  }
+      days.push(
+        <Button
+          key={day}
+          variant="ghost"
+          className={cn(
+            "h-8 w-8 p-0 font-normal",
+            isToday && "bg-muted text-muted-foreground",
+            isSelected && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+            !isToday && !isSelected && "hover:bg-muted"
+          )}
+          onClick={() => onDateSelect(date)}
+        >
+          {day}
+        </Button>
+      )
+    }
 
-  const handleNextMonth = () => {
-    onDateSelect(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))
+    return days
   }
 
   return (
-    <div className="bg-card rounded-lg p-2 shadow-sm">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-medium">{monthYear}</h3>
-        <div className="flex gap-1">
-          <Button variant="ghost" size="icon" onClick={handlePrevMonth} className="h-6 w-6 p-0">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="ghost"
+            className="h-8 w-8 p-0"
+            onClick={onPrevMonth}
+          >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={handleNextMonth} className="h-6 w-6 p-0">
+          <div className="font-medium">
+            {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+          </div>
+          <Button
+            variant="ghost"
+            className="h-8 w-8 p-0"
+            onClick={onNextMonth}
+          >
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
-      <div className="grid grid-cols-7 gap-1 text-center text-xs">
+      <div className="grid grid-cols-7 gap-1 text-center text-sm">
         {weekDays.map((day) => (
-          <div key={day} className="font-medium text-muted-foreground">
+          <div key={day} className="h-8 font-medium">
             {day}
           </div>
         ))}
-        {allDays.map((day, index) => {
-          if (day === null) {
-            return <div key={`blank-${index}`} />
-          }
-
-          const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
-          const isToday = date.toDateString() === new Date().toDateString()
-          const isSelected = date.toDateString() === selectedDate.toDateString()
-
-          return (
-            <Button
-              key={date.getTime()}
-              variant="ghost"
-              size="sm"
-              className={`h-6 w-6 p-0 ${isSelected ? 'bg-primary text-primary-foreground' : ''} ${
-                isToday ? 'text-primary' : ''
-              }`}
-              onClick={() => onDateSelect(date)}
-            >
-              {day}
-            </Button>
-          )
-        })}
+        {renderCalendarDays()}
       </div>
     </div>
   )

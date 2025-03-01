@@ -1,11 +1,11 @@
 'use server'
 
-import { createServerActionClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase-server';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 
 export async function createTeam(name: string, description: string) {
-    const supabase = createServerActionClient({ cookies });
+    const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) throw new Error('Not authenticated');

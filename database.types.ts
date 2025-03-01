@@ -9,33 +9,133 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      invitations: {
+      ai_interactions: {
         Row: {
-          email: string
-          id: number
-          invited_at: string
-          responded_at: string | null
-          status: string | null
-          team_id: number | null
-          token: string
+          created_at: string
+          id: string
+          model: string
+          prompt: string
+          response: string
+          user_id: string
         }
         Insert: {
-          email: string
-          id?: number
-          invited_at?: string
-          responded_at?: string | null
-          status?: string | null
-          team_id?: number | null
-          token: string
+          created_at?: string
+          id?: string
+          model: string
+          prompt: string
+          response: string
+          user_id: string
         }
         Update: {
-          email?: string
-          id?: number
-          invited_at?: string
-          responded_at?: string | null
-          status?: string | null
-          team_id?: number | null
-          token?: string
+          created_at?: string
+          id?: string
+          model?: string
+          prompt?: string
+          response?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      attachments: {
+        Row: {
+          content_type: string
+          created_at: string | null
+          file_name: string
+          file_path: string
+          file_size: number
+          id: string
+          task_id: number | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          content_type: string
+          created_at?: string | null
+          file_name: string
+          file_path: string
+          file_size: number
+          id?: string
+          task_id?: number | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          content_type?: string
+          created_at?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          task_id?: number | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attachments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comments: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          task_id: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          task_id?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          task_id?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          data: Json
+          id: string
+          read: boolean | null
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data?: Json
+          id?: string
+          read?: boolean | null
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data?: Json
+          id?: string
+          read?: boolean | null
+          type?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -106,6 +206,7 @@ export type Database = {
           description: string | null
           id: number
           name: string
+          status: string | null
           team_id: string | null
           updated_at: string | null
           user_id: string | null
@@ -116,6 +217,7 @@ export type Database = {
           description?: string | null
           id?: number
           name: string
+          status?: string | null
           team_id?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -126,11 +228,74 @@ export type Database = {
           description?: string | null
           id?: number
           name?: string
+          status?: string | null
           team_id?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
         Relationships: []
+      }
+      saved_filters: {
+        Row: {
+          created_at: string
+          filters: Json
+          id: string
+          is_default: boolean | null
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          filters: Json
+          id?: string
+          is_default?: boolean | null
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      task_assignments: {
+        Row: {
+          assigned_by: string
+          created_at: string
+          id: string
+          task_id: number
+          user_id: string
+        }
+        Insert: {
+          assigned_by: string
+          created_at?: string
+          id?: string
+          task_id: number
+          user_id: string
+        }
+        Update: {
+          assigned_by?: string
+          created_at?: string
+          id?: string
+          task_id?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_assignments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tasks: {
         Row: {
@@ -142,8 +307,11 @@ export type Database = {
           due_date: string
           id: number
           importance: number | null
+          position: number | null
+          position_key: string | null
           priority: string
           project: string | null
+          project_id: number | null
           recurrence: string | null
           status: string
           subtasks: Json | null
@@ -164,8 +332,11 @@ export type Database = {
           due_date: string
           id?: number
           importance?: number | null
+          position?: number | null
+          position_key?: string | null
           priority: string
           project?: string | null
+          project_id?: number | null
           recurrence?: string | null
           status: string
           subtasks?: Json | null
@@ -186,8 +357,11 @@ export type Database = {
           due_date?: string
           id?: number
           importance?: number | null
+          position?: number | null
+          position_key?: string | null
           priority?: string
           project?: string | null
+          project_id?: number | null
           recurrence?: string | null
           status?: string
           subtasks?: Json | null
@@ -199,7 +373,15 @@ export type Database = {
           urgency?: number | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_invitations: {
         Row: {
@@ -208,7 +390,7 @@ export type Database = {
           id: string
           invited_at: string | null
           role: string
-          status: string
+          status: Database["public"]["Enums"]["invitation_status"] | null
           team_id: string
           token: string | null
         }
@@ -218,7 +400,7 @@ export type Database = {
           id?: string
           invited_at?: string | null
           role: string
-          status?: string
+          status?: Database["public"]["Enums"]["invitation_status"] | null
           team_id: string
           token?: string | null
         }
@@ -228,7 +410,7 @@ export type Database = {
           id?: string
           invited_at?: string | null
           role?: string
-          status?: string
+          status?: Database["public"]["Enums"]["invitation_status"] | null
           team_id?: string
           token?: string | null
         }
@@ -270,6 +452,13 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_members_user_id_profiles_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -402,6 +591,7 @@ export type Database = {
       }
       user_settings: {
         Row: {
+          ai_settings: Json | null
           auto_break: boolean
           color_scheme: string
           compact_mode: boolean
@@ -419,6 +609,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          ai_settings?: Json | null
           auto_break?: boolean
           color_scheme?: string
           compact_mode?: boolean
@@ -436,6 +627,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          ai_settings?: Json | null
           auto_break?: boolean
           color_scheme?: string
           compact_mode?: boolean
@@ -464,6 +656,7 @@ export type Database = {
     Enums: {
       color_scheme: "blue" | "green" | "purple" | "orange"
       font_size: "small" | "normal" | "large"
+      invitation_status: "pending" | "accepted" | "expired" | "cancelled"
       theme_type: "light" | "dark" | "system"
     }
     CompositeTypes: {

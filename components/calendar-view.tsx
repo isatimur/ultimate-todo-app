@@ -14,13 +14,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { motion, AnimatePresence } from 'framer-motion'
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
+import { DragDropContext, Droppable, Draggable, DroppableProvided, DroppableStateSnapshot } from '@hello-pangea/dnd'
 import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 import { MiniMonth } from './mini-month'
@@ -29,30 +30,86 @@ import { WeekView } from './week-view'
 import { QuickAddTask } from './quick-add-task'
 import { TaskDetails } from './task-details'
 import { TaskStatistics } from './task-statistics'
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday as dateFnsIsToday, isSameDay, addMonths, subMonths } from 'date-fns'
+import { cn } from '@/lib/utils'
+import { QuickAddTaskBar } from './quick-add-task-bar'
+import { toast } from 'sonner'
+import { 
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
+import { enUS } from 'date-fns/locale'
+import { QuickAddTaskNatural } from './quick-add-task-natural'
 
-interface CalendarViewProps {}
+interface CalendarViewProps {
+  tasks: Task[]
+  onTaskUpdate: (taskId: string, updates: Partial<Task>) => Promise<void>
+  onTaskDelete: (id: string) => Promise<void>
+  onAddTask: (task: Partial<Task>) => Promise<void>
+  projects: any[]
+}
 
-export function CalendarView({}: CalendarViewProps) {
-  const [currentDate, setCurrentDate] = useState(new Date())
-  const [selectedDate, setSelectedDate] = useState(new Date())
+interface TaskItemProps {
+  task: Task;
+  onSelect: (task: Task) => void;
+  onUpdate: (taskId: string, updates: Partial<Task>) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+  compact?: boolean;
+}
+
+function TaskItem({ task, onSelect, onUpdate, onDelete, compact = false }: TaskItemProps) {
+  const priorityColors = {
+    Low: "bg-green-500",
+    Medium: "bg-yellow-500",
+    High: "bg-red-500",
+    Urgent: "bg-red-600"
+  };
+
+  return (
+    <div 
+      className={cn(
+        "group flex items-center gap-1 rounded-md p-1 text-xs cursor-pointer",
+        "bg-card border border-border/50 hover:border-primary/30 transition-colors",
+        task.status === 'Complete' && "opacity-60"
+      )}
+      onClick={() => onSelect(task)}
+    >
+      <div 
+        className={cn(
+          "w-1.5 h-1.5 rounded-full flex-shrink-0",
+          priorityColors[task.priority] || "bg-muted"
+        )} 
+      />
+      <div className="flex-1 truncate font-medium">
+        {task.title}
+      </div>
+      {!compact && task.due_date && (
+        <div className="text-muted-foreground text-[10px] flex items-center">
+          <Clock className="h-3 w-3 mr-1" />
+          {format(new Date(task.due_date), 'h:mm a')}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function CalendarView({ tasks, onTaskUpdate, onTaskDelete, onAddTask, projects }: CalendarViewProps) {
+  const [currentDate, setCurrentDate] = useState(() => new Date())
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false)
   const [isEditTaskOpen, setIsEditTaskOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [view, setView] = useState<'month' | 'week'>('month')
+  const [view, setView] = useState<'month' | 'week' | 'day'>('month')
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [isAddingTask, setIsAddingTask] = useState(false)
+  const [isViewingDay, setIsViewingDay] = useState(false)
 
-  useEffect(() => {
-    const storedTasks = localStorage.getItem('tasks')
-    if (storedTasks) {
-      setTasks(JSON.parse(storedTasks))
-    }
-  }, [])
-
-  useEffect(() => {
-    localStorage.setItem('tasks', JSON.stringify(tasks))
-  }, [tasks])
+  const monthStart = startOfMonth(currentDate)
+  const monthEnd = endOfMonth(currentDate)
+  const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd })
 
   const getDaysInMonth = (date: Date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
@@ -62,15 +119,22 @@ export function CalendarView({}: CalendarViewProps) {
     return new Date(date.getFullYear(), date.getMonth(), 1).getDay()
   }
 
-  const daysInMonth = getDaysInMonth(currentDate)
   const firstDayOfMonth = getFirstDayOfMonth(currentDate)
   const monthYear = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })
 
-  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1)
+  const days = Array.from({ length: getDaysInMonth(currentDate) }, (_, i) => i + 1)
   const blanks = Array.from({ length: firstDayOfMonth }, (_, i) => null)
   const allDays = [...blanks, ...days]
 
-  const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const weekDays = [
+    { key: 'sunday', label: 'Sun' },
+    { key: 'monday', label: 'Mon' },
+    { key: 'tuesday', label: 'Tue' },
+    { key: 'wednesday', label: 'Wed' },
+    { key: 'thursday', label: 'Thu' },
+    { key: 'friday', label: 'Fri' },
+    { key: 'saturday', label: 'Sat' }
+  ]
 
   const handlePrevPeriod = () => {
     if (view === 'month') {
@@ -95,14 +159,20 @@ export function CalendarView({}: CalendarViewProps) {
   }
 
   const tasksByDate = useMemo(() => {
-    return tasks.reduce((acc, task) => {
-      const taskDate = new Date(task.date + 'T00:00:00').toDateString()
-      if (!acc[taskDate]) {
-        acc[taskDate] = []
+    console.log('Grouping tasks:', tasks)
+    return tasks.reduce<Record<string, Task[]>>((acc, task) => {
+      if (!task.due_date) return acc
+      
+      const taskDate = new Date(task.due_date)
+      taskDate.setHours(12, 0, 0, 0)
+      const dateKey = taskDate.toDateString()
+      
+      if (!acc[dateKey]) {
+        acc[dateKey] = []
       }
-      acc[taskDate].push(task)
+      acc[dateKey].push(task)
       return acc
-    }, {} as Record<string, Task[]>)
+    }, {})
   }, [tasks])
 
   const filteredTasks = useMemo(() => {
@@ -112,24 +182,28 @@ export function CalendarView({}: CalendarViewProps) {
     )
   }, [tasks, searchTerm])
 
-  const onCreateTask = (newTask: Omit<Task, "id">) => {
-    const task: Task = {
-      ...newTask,
-      id: Date.now().toString(),
-      date: new Date(selectedDate.getTime() - selectedDate.getTimezoneOffset() * 60000).toISOString().split('T')[0]
+  const onCreateTask = async (newTask: Partial<Task>) => {
+    try {
+      await onAddTask({
+        ...newTask,
+        due_date: newTask.due_date || selectedDate?.toISOString() || new Date().toISOString()
+      })
+      setIsCreateTaskOpen(false)
+      toast.success('Task created successfully')
+    } catch (error) {
+      console.error('Error creating task:', error)
+      toast.error('Failed to create task')
     }
-    setTasks([...tasks, task])
-    setIsCreateTaskOpen(false)
   }
 
   const onUpdateTask = (taskId: string, updates: Partial<Task>) => {
-    setTasks(tasks.map(task => task.id === taskId ? { ...task, ...updates } : task))
+    onTaskUpdate(taskId, updates)
     setIsEditTaskOpen(false)
     setEditingTask(null)
   }
 
   const onDeleteTask = (taskId: string) => {
-    setTasks(tasks.filter(task => task.id !== taskId))
+    onTaskDelete(taskId)
   }
 
   const getTaskColor = (category: Task['category']) => {
@@ -147,362 +221,501 @@ export function CalendarView({}: CalendarViewProps) {
 
   const timeSlots = Array.from({ length: 24 }, (_, i) => i)
 
-  const onDragEnd = (result: any) => {
+  const onDragEnd = async (result: any) => {
     if (!result.destination) return
 
     const sourceDate = new Date(parseInt(result.source.droppableId))
     const destinationDate = new Date(parseInt(result.destination.droppableId))
+    const taskId = result.draggableId
 
-    const updatedTasks = Array.from(tasks)
-    const [reorderedTask] = updatedTasks.splice(result.source.index, 1)
-    reorderedTask.date = destinationDate.toISOString().split('T')[0]
-    updatedTasks.splice(result.destination.index, 0, reorderedTask)
-
-    setTasks(updatedTasks)
+    try {
+      const formattedDate = new Date(destinationDate)
+      formattedDate.setHours(12, 0, 0, 0)
+      
+      await onTaskUpdate(taskId, {
+        due_date: formattedDate.toISOString()
+      })
+      toast.success('Task moved successfully')
+    } catch (error) {
+      console.error('Error moving task:', error)
+      toast.error('Failed to move task')
+    }
   }
 
-  return (
-    <DragDropContext onDragEnd={onDragEnd}>
-      <div className="flex flex-col h-full bg-background">
-        <div className="flex items-center justify-between p-4 border-b">
-          <div className="flex items-center gap-6">
-            <h1 className="text-2xl font-semibold">{monthYear}</h1>
-            <div className="flex gap-1">
-              <Button variant="outline" size="icon" onClick={handlePrevPeriod}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="icon" onClick={handleNextPeriod}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleToday}
-              className="h-9"
-            >
-              Today
-            </Button>
-            <Select value={view} onValueChange={(value: 'month' | 'week') => setView(value)}>
-              <SelectTrigger className="w-[120px]">
-                <SelectValue placeholder="Select view" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="month">Month</SelectItem>
-                <SelectItem value="week">Week</SelectItem>
-              </SelectContent>
-            </Select>
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search tasks..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8 h-9 w-[200px]"
+  const getTasksForDay = (date: Date) => {
+    return tasks.filter(task => {
+      const taskDate = new Date(task.due_date)
+      return isSameDay(taskDate, date)
+    })
+  }
+
+  const handleAddTask = (date: Date) => {
+    const newTask: Partial<Task> = {
+      title: 'New Task',
+      description: '',
+      status: 'To Do',
+      priority: 'Medium',
+      due_date: date.toISOString().split('T')[0],
+    }
+    onAddTask(newTask)
+  }
+
+  const handleDateClick = (date: Date) => {
+    setSelectedDate(date)
+  }
+
+  const getTasksForDate = (date: Date): Task[] => {
+    return tasks.filter(task => {
+      const taskDate = new Date(task.due_date)
+      return taskDate.toDateString() === date.toDateString()
+    })
+  }
+
+  const handleAddTaskForDate = async (task: Partial<Task>) => {
+    if (selectedDate) {
+      try {
+        await onAddTask({
+          ...task,
+          due_date: task.due_date || selectedDate.toISOString()
+        })
+        toast.success('Task added successfully')
+      } catch (error) {
+        console.error('Error adding task:', error)
+        toast.error('Failed to add task')
+      }
+    }
+  }
+
+  const handleDateSelect = (date: Date) => {
+    setSelectedDate(date)
+  }
+
+  const selectedDateTasks = selectedDate ? getTasksForDate(selectedDate) : []
+
+  const handleQuickAddTask = async (date: Date, time?: string) => {
+    try {
+      if (!date) {
+        throw new Error('Date is required')
+      }
+
+      const newTask: Partial<Task> = {
+        title: 'New Task',
+        description: '',
+        status: 'To Do',
+        priority: 'Medium',
+        due_date: new Date(date.getFullYear(), date.getMonth(), date.getDate(), 
+          time ? parseInt(time.split(':')[0]) : 0, 
+          time ? parseInt(time.split(':')[1]) : 0
+        ).toISOString(),
+      }
+
+      await onAddTask(newTask)
+      toast.success('Task created successfully')
+    } catch (error) {
+      console.error('Error creating task:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to create task')
+    }
+  }
+
+  // Format dates consistently using enUS locale
+  const formatDate = (date: Date) => {
+    return format(date, 'MMM dd, yyyy', { locale: enUS })
+  }
+
+  const formatTime = (date: Date) => {
+    return format(date, 'HH:mm', { locale: enUS })
+  }
+
+  // Helper function to render tasks for a specific hour
+  const tasksForHourComponent = (date: Date, hour: number) => {
+    const tasksForDate = tasksByDate[date.toDateString()] || []
+    
+    const tasksForHour = tasksForDate.filter(task => {
+      if (!task.start_time) return hour === 0
+      const taskHour = parseInt(task.start_time.split(':')[0])
+      return taskHour === hour
+    })
+    
+    return tasksForHour.map((task: Task) => (
+      <motion.div
+        key={task.id}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.2 }}
+        className="mb-2"
+      >
+        <Card className="hover:shadow-md transition-all duration-200">
+          <CardContent className="p-3">
+            <div className="flex items-start gap-3">
+              <Checkbox 
+                checked={task.status === 'Complete'}
+                onCheckedChange={() => onTaskUpdate(task.id, { status: task.status === 'Complete' ? 'To Do' : 'Complete' })}
               />
-            </div>
-            <Button 
-              onClick={() => setIsCreateTaskOpen(true)}
-              className="h-9 bg-black text-white hover:bg-black/90"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add Task
-            </Button>
-          </div>
-        </div>
-        <div className="p-4">
-          <TaskStatistics tasks={tasks} />
-        </div>
-        <div className="flex flex-1 overflow-hidden">
-          <div className="w-64 border-r p-4 flex flex-col gap-4">
-            <MiniMonth 
-              currentDate={currentDate} 
-              selectedDate={selectedDate}
-              onDateSelect={setSelectedDate}
-            />
-            <TaskLegend />
-            <QuickAddTask onAddTask={onCreateTask} />
-          </div>
-          <div className="flex-1 overflow-auto">
-            {view === 'month' ? (
-              <div className="grid grid-cols-7 gap-px bg-border p-4">
-                {weekDays.map((day) => (
-                  <div key={day} className="bg-background p-3 text-center text-sm font-medium text-muted-foreground">
-                    {day}
-                  </div>
-                ))}
-                {allDays.map((day, index) => {
-                  if (day === null) {
-                    return <div key={`blank-${index}`} className="bg-background p-3" />
-                  }
-
-                  const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
-                  const isToday = date.toDateString() === new Date().toDateString()
-                  const isSelected = date.toDateString() === selectedDate.toDateString()
-                  const dayTasks = tasksByDate[date.toDateString()] || []
-
-                  return (
-                    <Droppable droppableId={date.getTime().toString()} key={date.getTime().toString()}>
-                      {(provided, snapshot) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.droppableProps}
-                          className={`bg-card p-2 min-h-[120px] transition-colors duration-200 cursor-pointer hover:bg-accent/50 ${
-                            isSelected ? 'ring-2 ring-primary' : ''
-                          } ${isToday ? 'bg-accent/50' : ''} ${
-                            snapshot.isDraggingOver ? 'bg-accent' : ''
-                          }`}
-                          onClick={() => setSelectedDate(date)}
-                        >
-                          <span className={`text-sm font-medium ${isToday ? 'text-primary' : ''}`}>
-                            {day}
-                          </span>
-                          <AnimatePresence>
-                            {dayTasks.map((task, taskIndex) => (
-                              <Draggable key={task.id} draggableId={task.id} index={taskIndex}>
-                                {(provided, snapshot) => (
-                                  <div
-                                    ref={provided.innerRef}
-                                    {...provided.draggableProps}
-                                    {...provided.dragHandleProps}
-                                  >
-                                    <motion.div
-                                      initial={{ opacity: 0, y: 10 }}
-                                      animate={{ opacity: 1, y: 0 }}
-                                      exit={{ opacity: 0, y: -10 }}
-                                      transition={{ duration: 0.2 }}
-                                      className={`mt-1 ${snapshot.isDragging ? 'opacity-50' : ''}`}
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        setSelectedTask(task)
-                                      }}
-                                    >
-                                      <div
-                                        className={`text-xs p-1 rounded-md ${getTaskColor(task.category)} transition-colors duration-200`}
-                                      >
-                                        <div className="flex items-center gap-1">
-                                          <span className="truncate">{task.title}</span>
-                                          {task.startTime && (
-                                            <Clock className="h-3 w-3 flex-shrink-0" />
-                                          )}
-                                        </div>
-                                      </div>
-                                    </motion.div>
-                                  </div>
-                                )}
-                              </Draggable>
-                            ))}
-                          </AnimatePresence>
-                          {provided.placeholder}
-                        </div>
-                      )}
-                    </Droppable>
-                  )
-                })}
-              </div>
-            ) : (
-              <WeekView
-                currentDate={currentDate}
-                tasks={filteredTasks}
-                onTaskClick={setSelectedTask}
-                getTaskColor={getTaskColor}
-              />
-            )}
-          </div>
-
-          <div className="w-[300px] border-l bg-card">
-            <div className="p-4 border-b">
-              <h2 className="font-semibold">
-                Tasks for {selectedDate.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-              </h2>
-            </div>
-            <ScrollArea className="h-[calc(100vh-10rem)]">
-              <div className="relative">
-                {timeSlots.map((hour) => (
-                  <div key={hour} className="relative">
-                    <div className="sticky top-0 z-10 bg-card/95 backdrop-blur-sm">
-                      <div className="flex items-center h-12 px-4">
-                        <span className="text-sm font-medium text-muted-foreground w-16">
-                          {hour.toString().padStart(2, '0')}:00
-                        </span>
-                        <Separator className="flex-1 ml-2" />
-                      </div>
-                    </div>
-                    <div className="px-4">
-                      {tasksByDate[selectedDate.toDateString()]?.filter(task => {
-                        const taskHour = task.startTime ? parseInt(task.startTime.split(':')[0]) : null
-                        return taskHour === hour
-                      }).map((task) => (
-                        <motion.div
-                          key={task.id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -20 }}
-                          transition={{ duration: 0.2 }}
-                          className="mb-2"
-                        >
-                          <Card className="hover:shadow-md transition-all duration-200">
-                            <CardContent className="p-3">
-                              <div className="flex items-start gap-3">
-                                <Checkbox 
-                                  id={`task-${task.id}`}
-                                  checked={task.completed}
-                                  onCheckedChange={(checked) => {
-                                    onUpdateTask(task.id, { completed: checked as boolean })
-                                  }}
-                                  className="mt-1"
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <label 
-                                      htmlFor={`task-${task.id}`}
-                                      className={`font-medium text-sm ${task.completed ? 'line-through text-muted-foreground' : ''}`}
-                                    >
-                                      {task.title}
-                                    </label>
-                                    <Badge 
-                                      variant="outline" 
-                                      className={getTaskColor(task.category)}
-                                    >
-                                      {task.category}
-                                    </Badge>
-                                  </div>
-                                  {task.description && (
-                                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                                      {task.description}
-                                    </p>
-                                  )}
-                                  <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-                                    <span>{task.startTime} - {task.endTime}</span>
-                                    <div className="flex items-center gap-2">
-                                      <Button 
-                                        variant="ghost" 
-                                        size="sm" 
-                                        className="h-7 px-2 hover:bg-accent"
-                                        onClick={() => {
-                                          setEditingTask(task)
-                                          setIsEditTaskOpen(true)
-                                        }}
-                                      >
-                                        <Pencil className="h-3 w-3" />
-                                      </Button>
-                                      <Button 
-                                        variant="ghost" 
-                                        size="sm"
-                                        className="h-7 px-2 hover:bg-destructive/10 hover:text-destructive"
-                                        onClick={() => onDeleteTask(task.id)}
-                                      >
-                                        <Trash2 className="h-3 w-3" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </div>
-        </div>
-
-        <CreateTaskDialog
-          open={isCreateTaskOpen}
-          onOpenChange={setIsCreateTaskOpen}
-          onCreateTask={onCreateTask}
-        />
-
-        <Dialog open={isEditTaskOpen} onOpenChange={setIsEditTaskOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Task</DialogTitle>
-            </DialogHeader>
-            {editingTask && (
-              <form onSubmit={(e) => {
-                e.preventDefault()
-                const formData = new FormData(e.currentTarget)
-                onUpdateTask(editingTask.id, {
-                  title: formData.get('title') as string,
-                  description: formData.get('description') as string,
-                  category: formData.get('category') as Task['category'],
-                  startTime: formData.get('startTime') as string,
-                  endTime: formData.get('endTime') as string,
-                })
-              }}>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="title" className="text-right">Title</Label>
-                    <Input id="title" name="title" defaultValue={editingTask.title} className="col-span-3" required />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="description" className="text-right">Description</Label>
-                    <Input id="description" name="description" defaultValue={editingTask.description} className="col-span-3" />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="category" className="text-right">Category</Label>
-                    <Select name="category" defaultValue={editingTask.category}>
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Work">Work</SelectItem>
-                        <SelectItem value="Personal">Personal</SelectItem>
-                        <SelectItem value="Errands">Errands</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="startTime" className="text-right">Start Time</Label>
-                    <Input 
-                      id="startTime" 
-                      name="startTime" 
-                      type="time" 
-                      defaultValue={editingTask.startTime} 
-                      className="col-span-3" 
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="endTime" className="text-right">End Time</Label>
-                    <Input 
-                      id="endTime" 
-                      name="endTime" 
-                      type="time" 
-                      defaultValue={editingTask.endTime} 
-                      className="col-span-3" 
-                    />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <label 
+                    htmlFor={`task-${task.id}`}
+                    className={`font-medium text-sm ${task.status === 'Complete' ? 'line-through text-muted-foreground' : ''}`}
+                  >
+                    {task.title}
+                  </label>
+                  <Badge 
+                    variant="outline" 
+                    className={getTaskColor(task.category)}
+                  >
+                    {task.category}
+                  </Badge>
+                </div>
+                {task.description && (
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                    {task.description}
+                  </p>
+                )}
+                <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                  <span>{task.start_time} - {task.end_time}</span>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-7 px-2 hover:bg-accent"
+                      onClick={() => {
+                        setEditingTask(task)
+                        setIsEditTaskOpen(true)
+                      }}
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="h-7 px-2 hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => onDeleteTask(task.id)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button type="submit">Save changes</Button>
-                </DialogFooter>
-              </form>
-            )}
-          </DialogContent>
-        </Dialog>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    ))
+  }
 
-        {selectedTask && (
-          <TaskDetails
-            task={selectedTask}
-            onClose={() => setSelectedTask(null)}
-            onEdit={() => {
+  const handleTaskSelect = (task: Task) => {
+    setSelectedTask(task);
+  };
+
+  return (
+    <div className="calendar-container">
+      <div className="calendar-header flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <div className="month-navigation flex items-center">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handlePrevPeriod}
+            className="month-navigation-button"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <h2 className="month-title text-2xl font-bold">{monthYear}</h2>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleNextPeriod}
+            className="month-navigation-button"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleToday}
+            className="ml-2 text-sm"
+          >
+            Today
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <div className="flex items-center">
+            <Button
+              variant={view === 'month' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setView('month')}
+              className="rounded-l-md rounded-r-none"
+            >
+              Month
+            </Button>
+            <Button
+              variant={view === 'week' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setView('week')}
+              className="rounded-none border-l-0"
+            >
+              Week
+            </Button>
+            <Button
+              variant={view === 'day' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setView('day')}
+              className="rounded-r-md rounded-l-none border-l-0"
+            >
+              Day
+            </Button>
+          </div>
+
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search tasks..."
+              className="pl-8 h-9 w-[150px] sm:w-[180px] md:w-[200px]"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          <Button
+            onClick={() => {
+              setSelectedDate(new Date())
+              setIsCreateTaskOpen(true)
+            }}
+            size="sm"
+            className="gap-1"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Add Task</span>
+          </Button>
+        </div>
+      </div>
+
+      {view === 'month' && (
+        <div className="calendar-view-container">
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {weekDays.map((day) => (
+              <div
+                key={day.key}
+                className="text-center py-2 text-sm font-medium text-muted-foreground"
+              >
+                {day.label}
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-7 gap-1 calendar-grid">
+            {allDays.map((day, index) => {
+              const date = day ? new Date(currentDate.getFullYear(), currentDate.getMonth(), day) : null
+              const isToday = date ? dateFnsIsToday(date) : false
+              const isSelected = date && selectedDate ? isSameDay(date, selectedDate) : false
+              const dayTasks = date ? tasks.filter(task => {
+                const dueDate = task.due_date ? new Date(task.due_date) : null
+                return dueDate && isSameDay(dueDate, date)
+              }) : []
+
+              return (
+                <div
+                  key={index}
+                  className={cn(
+                    "calendar-day border rounded-md p-1 min-h-[100px] transition-all",
+                    day === null && "bg-muted/20 border-dashed",
+                    isToday && "border-primary/50 bg-primary/5",
+                    isSelected && "ring-2 ring-primary ring-offset-2",
+                  )}
+                  onClick={() => day && handleDateClick(date!)}
+                >
+                  {day !== null && (
+                    <>
+                      <div className="flex justify-between items-center mb-1">
+                        <span
+                          className={cn(
+                            "inline-flex items-center justify-center w-6 h-6 rounded-full text-sm",
+                            isToday && "bg-primary text-primary-foreground font-medium"
+                          )}
+                        >
+                          {day}
+                        </span>
+                        {dayTasks.length > 0 && (
+                          <Badge variant="outline" className="text-xs">
+                            {dayTasks.length}
+                          </Badge>
+                        )}
+                      </div>
+                      <ScrollArea className="h-[calc(100%-24px)]">
+                        <div className="space-y-1">
+                          {dayTasks.slice(0, 3).map((task) => (
+                            <TaskItem
+                              key={task.id}
+                              task={task}
+                              onSelect={handleTaskSelect}
+                              onUpdate={onTaskUpdate}
+                              onDelete={onTaskDelete}
+                              compact
+                            />
+                          ))}
+                          {dayTasks.length > 3 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="w-full text-xs h-6 mt-1"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedDate(date)
+                                setIsViewingDay(true)
+                              }}
+                            >
+                              +{dayTasks.length - 3} more
+                            </Button>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      <CreateTaskDialog
+        open={isCreateTaskOpen}
+        onOpenChange={setIsCreateTaskOpen}
+        onCreateTask={onCreateTask}
+      />
+
+      <Dialog open={isEditTaskOpen} onOpenChange={setIsEditTaskOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Task</DialogTitle>
+            <DialogDescription>
+              Make changes to your task below. Click save when you're done.
+            </DialogDescription>
+          </DialogHeader>
+          {editingTask && (
+            <form onSubmit={(e) => {
+              e.preventDefault()
+              const formData = new FormData(e.currentTarget)
+              onUpdateTask(editingTask.id, {
+                title: formData.get('title') as string,
+                description: formData.get('description') as string,
+                // category: formData.get('category') as Task['category'],
+                start_time: formData.get('startTime') as string,
+                end_time: formData.get('endTime') as string,
+              })
+            }}>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="title" className="text-right">Title</Label>
+                  <Input id="title" name="title" defaultValue={editingTask.title} className="col-span-3" required />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="description" className="text-right">Description</Label>
+                  <Input id="description" name="description" defaultValue={editingTask.description} className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="category" className="text-right">Category</Label>
+                  <Select name="category" defaultValue={editingTask.category}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Work">Work</SelectItem>
+                      <SelectItem value="Personal">Personal</SelectItem>
+                      <SelectItem value="Errands">Errands</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="startTime" className="text-right">Start Time</Label>
+                  <Input 
+                    id="startTime" 
+                    name="startTime" 
+                    type="time" 
+                    defaultValue={editingTask.start_time} 
+                    className="col-span-3" 
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="endTime" className="text-right">End Time</Label>
+                  <Input 
+                    id="endTime" 
+                    name="endTime" 
+                    type="time" 
+                    defaultValue={editingTask.end_time} 
+                    className="col-span-3" 
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit">Save changes</Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {selectedTask && (
+        <TaskDetails
+          task={selectedTask as Task}
+          onClose={() => setSelectedTask(null)}
+          onEdit={() => {
+            if (selectedTask) {
               setEditingTask(selectedTask)
               setIsEditTaskOpen(true)
               setSelectedTask(null)
-            }}
-            onDelete={() => {
+            }
+          }}
+          onDelete={() => {
+            if (selectedTask) {
               onDeleteTask(selectedTask.id)
               setSelectedTask(null)
-            }}
+            }
+          }}
+        />
+      )}
+
+      {selectedDate && (
+        <Card className="p-4 mt-4">
+          <h3 className="font-semibold mb-2">
+            {formatDate(selectedDate as Date)}
+          </h3>
+          <QuickAddTaskBar
+            columnId="calendar"
+            onAddTask={handleAddTaskForDate}
+            projects={projects}
           />
-        )}
-      </div>
-    </DragDropContext>
+          <div className="mt-4 space-y-2">
+            {selectedDateTasks.map((task) => (
+              <div
+                key={task.id}
+                className="flex items-center justify-between p-2 rounded-lg bg-accent"
+              >
+                <span className="truncate">{task.title}</span>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onTaskUpdate(task.id, { status: task.status === 'Complete' ? 'To Do' : 'Complete' })}
+                  >
+                    {task.status === 'Complete' ? 'Undo' : 'Complete'}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onTaskDelete(task.id)}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+    </div>
   )
 }
 

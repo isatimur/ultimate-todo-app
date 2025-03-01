@@ -1,52 +1,42 @@
+import './globals.css'
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
+import { Toaster } from 'sonner'
+import { createClient } from '@/lib/supabase-server'
+import SessionProvider from '@/components/session-provider'
+import ClientWrapper from '@/components/client-wrapper'
+import { cn } from '@/lib/utils'
 
-import localFont from 'next/font/local';
-import './globals.css';
-import { Toaster } from '@/components/ui/sonner';
-import SupabaseProvider from '@/components/supabase-provider';
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
-import { ThemeProvider } from '@/components/theme-provider';
-import { SettingsProvider } from '@/lib/contexts/settings-context';
-const geistSans = localFont({
-  src: './fonts/GeistVF.woff',
-  variable: '--font-geist-sans',
-  weight: '100 900',
-});
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-sans',
+})
 
-const geistMono = localFont({
-  src: './fonts/GeistMonoVF.woff',
-  variable: '--font-geist-mono',
-  weight: '100 900',
-});
+export const metadata: Metadata = {
+  title: 'Ultimate Todo App',
+  description: 'The most powerful todo app for professionals',
+}
 
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = createServerComponentClient({ cookies });
-  const {
-    //@typescript-eslint/no-unused-vars
-    data: { user }
-  } = await supabase.auth.getUser();
-
-
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
   return (
-    <html lang="en">
-      <body suppressHydrationWarning={true}
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-
-      >
-        <Toaster />
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem={true} disableTransitionOnChange>
-          <SupabaseProvider>
-            <SettingsProvider>
-              {children}
-              <Toaster />
-            </SettingsProvider>
-          </SupabaseProvider>
-        </ThemeProvider>
+    <html lang="en" className={cn(
+      "min-h-screen bg-background font-sans antialiased",
+      inter.variable
+    )} suppressHydrationWarning>
+      <body suppressHydrationWarning className="relative flex min-h-screen flex-col">
+        <SessionProvider>
+          <ClientWrapper initialUser={user}>
+            {children}
+            <Toaster position="bottom-right" richColors closeButton />
+          </ClientWrapper>
+        </SessionProvider>
       </body>
     </html>
   );

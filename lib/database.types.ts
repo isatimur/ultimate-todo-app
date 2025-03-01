@@ -6,7 +6,17 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export type Database = {
+interface TimerSettings {
+  workDuration: number
+  breakDuration: number
+  longBreakDuration: number
+  sessionsUntilLongBreak: number
+  autoStartBreaks: boolean
+  autoStartPomodoros: boolean
+  soundEnabled: boolean
+}
+
+export interface Database {
   public: {
     Tables: {
       invitations: {
@@ -134,72 +144,107 @@ export type Database = {
       }
       tasks: {
         Row: {
-          assigned_to: string | null
-          assignees: string[] | null
-          created_at: string
-          dependencies: number[] | null
-          description: string | null
-          due_date: string
-          id: number
-          importance: number | null
-          priority: string
-          project: string | null
-          recurrence: string | null
-          status: string
-          subtasks: Json | null
-          tags: string[] | null
-          team_id: string | null
-          time_tracked: number | null
+          id: string
           title: string
+          description: string | null
+          status: string
+          priority: string
+          due_date: string
+          completed_at: string | null
+          created_at: string
           updated_at: string
-          urgency: number | null
-          user_id: string | null
+          project_id: string | null
+          team_id: string | null
+          user_id: string
+          time_tracked: number | null
+          tags: string[] | null
+          position_key: string | null
         }
         Insert: {
-          assigned_to?: string | null
-          assignees?: string[] | null
-          created_at?: string
-          dependencies?: number[] | null
-          description?: string | null
-          due_date: string
-          id?: number
-          importance?: number | null
-          priority: string
-          project?: string | null
-          recurrence?: string | null
-          status: string
-          subtasks?: Json | null
-          tags?: string[] | null
-          team_id?: string | null
-          time_tracked?: number | null
+          id?: string
           title: string
+          description?: string | null
+          status?: string
+          priority?: string
+          due_date: string
+          completed_at?: string | null
+          created_at?: string
           updated_at?: string
-          urgency?: number | null
-          user_id?: string | null
+          project_id?: string | null
+          team_id?: string | null
+          user_id: string
+          time_tracked?: number | null
+          tags?: string[] | null
+          position_key?: string | null
         }
         Update: {
-          assigned_to?: string | null
-          assignees?: string[] | null
-          created_at?: string
-          dependencies?: number[] | null
-          description?: string | null
-          due_date?: string
-          id?: number
-          importance?: number | null
-          priority?: string
-          project?: string | null
-          recurrence?: string | null
-          status?: string
-          subtasks?: Json | null
-          tags?: string[] | null
-          team_id?: string | null
-          time_tracked?: number | null
+          id?: string
           title?: string
+          description?: string | null
+          status?: string
+          priority?: string
+          due_date?: string
+          completed_at?: string | null
+          created_at?: string
           updated_at?: string
-          urgency?: number | null
-          user_id?: string | null
+          project_id?: string | null
+          team_id?: string | null
+          user_id?: string
+          time_tracked?: number | null
+          tags?: string[] | null
+          position_key?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      subtasks: {
+        Row: {
+          id: string
+          title: string
+          completed: boolean
+          task_id: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          completed?: boolean
+          task_id: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          completed?: boolean
+          task_id?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subtasks_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       team_invitations: {
         Row: {
@@ -245,24 +290,24 @@ export type Database = {
       team_members: {
         Row: {
           id: string
-          joined_at: string | null
-          role: string
-          team_id: string
           user_id: string
+          team_id: string
+          role: 'owner' | 'admin' | 'member'
+          created_at: string
         }
         Insert: {
           id?: string
-          joined_at?: string | null
-          role: string
-          team_id: string
           user_id: string
+          team_id: string
+          role: 'owner' | 'admin' | 'member'
+          created_at?: string
         }
         Update: {
           id?: string
-          joined_at?: string | null
-          role?: string
-          team_id?: string
           user_id?: string
+          team_id?: string
+          role?: 'owner' | 'admin' | 'member'
+          created_at?: string
         }
         Relationships: [
           {
@@ -276,28 +321,25 @@ export type Database = {
       }
       teams: {
         Row: {
-          created_at: string | null
-          description: string | null
           id: string
           name: string
-          owner_id: string
-          updated_at: string | null
+          description: string | null
+          created_at: string
+          updated_at: string
         }
         Insert: {
-          created_at?: string | null
-          description?: string | null
           id?: string
           name: string
-          owner_id: string
-          updated_at?: string | null
+          description?: string | null
+          created_at?: string
+          updated_at?: string
         }
         Update: {
-          created_at?: string | null
-          description?: string | null
           id?: string
           name?: string
-          owner_id?: string
-          updated_at?: string | null
+          description?: string | null
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -337,6 +379,7 @@ export type Database = {
           task_id: number | null
           updated_at: string | null
           user_id: string | null
+          type: 'pomodoro' | 'break' | 'manual'
         }
         Insert: {
           created_at?: string | null
@@ -349,6 +392,7 @@ export type Database = {
           task_id?: number | null
           updated_at?: string | null
           user_id?: string | null
+          type?: 'pomodoro' | 'break' | 'manual'
         }
         Update: {
           created_at?: string | null
@@ -361,6 +405,7 @@ export type Database = {
           task_id?: number | null
           updated_at?: string | null
           user_id?: string | null
+          type?: 'pomodoro' | 'break' | 'manual'
         }
         Relationships: [
           {
@@ -376,7 +421,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tasks"
             referencedColumns: ["id"]
-          },
+          }
         ]
       }
       user_preferences: {
@@ -402,57 +447,50 @@ export type Database = {
       }
       user_settings: {
         Row: {
-          auto_break: boolean
-          color_scheme: string
-          compact_mode: boolean
-          due_date_reminders: boolean
-          email_notifications: boolean
-          font_size: string
           id: string
-          pomodoro_length: number
-          push_notifications: boolean
-          reduced_motion: boolean
-          sound_enabled: boolean
-          task_reminders: boolean
-          team_updates: boolean
-          theme: string
+          user_id: string
+          created_at: string | null
           updated_at: string | null
+          timer_settings: TimerSettings | null
         }
         Insert: {
-          auto_break?: boolean
-          color_scheme?: string
-          compact_mode?: boolean
-          due_date_reminders?: boolean
-          email_notifications?: boolean
-          font_size?: string
-          id: string
-          pomodoro_length?: number
-          push_notifications?: boolean
-          reduced_motion?: boolean
-          sound_enabled?: boolean
-          task_reminders?: boolean
-          team_updates?: boolean
-          theme?: string
+          id?: string
+          user_id: string
+          created_at?: string | null
           updated_at?: string | null
+          timer_settings?: TimerSettings | null
         }
         Update: {
-          auto_break?: boolean
-          color_scheme?: string
-          compact_mode?: boolean
-          due_date_reminders?: boolean
-          email_notifications?: boolean
-          font_size?: string
           id?: string
-          pomodoro_length?: number
-          push_notifications?: boolean
-          reduced_motion?: boolean
-          sound_enabled?: boolean
-          task_reminders?: boolean
-          team_updates?: boolean
-          theme?: string
+          user_id?: string
+          created_at?: string | null
           updated_at?: string | null
+          timer_settings?: TimerSettings | null
         }
         Relationships: []
+      }
+      task_assignments: {
+        Row: {
+          id: string
+          task_id: string
+          user_id: string
+          assigned_by: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          task_id: string
+          user_id: string
+          assigned_by: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          task_id?: string
+          user_id?: string
+          assigned_by?: string
+          created_at?: string
+        }
       }
     }
     Views: {
@@ -465,6 +503,9 @@ export type Database = {
       color_scheme: "blue" | "green" | "purple" | "orange"
       font_size: "small" | "normal" | "large"
       theme_type: "light" | "dark" | "system"
+      task_status: 'To Do' | 'In Progress' | 'In Review' | 'Complete'
+      task_priority: 'Low' | 'Medium' | 'High'
+      team_role: 'owner' | 'admin' | 'member'
     }
     CompositeTypes: {
       [_ in never]: never
@@ -597,3 +638,19 @@ export interface Profile {
   created_at?: string;
   updated_at?: string;
 }
+
+export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row']
+export type Enums<T extends keyof Database['public']['Enums']> = Database['public']['Enums'][T]
+
+// Helper types for common queries
+export type TeamWithMembers = Tables<'teams'> & {
+  members: (Tables<'team_members'> & {
+    profiles: Tables<'profiles'>
+  })[]
+}
+
+export type TeamMemberWithProfile = Tables<'team_members'> & {
+  profiles: Tables<'profiles'>
+}
+
+export type TeamInvitation = Tables<'team_invitations'>

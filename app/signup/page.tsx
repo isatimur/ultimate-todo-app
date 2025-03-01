@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
+import { createBrowserClient } from '@supabase/ssr';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -12,22 +12,40 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 
 export default function SignUp() {
-  const supabase = useSupabaseClient();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
-  const handleSignUp = async () => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-    if (error) {
-      console.error('Error signing up:', error.message);
-      toast.error(error.message);
-    } else {
-      toast.success('A confirmation link has been sent to your email.');
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success('Check your email for the confirmation link!');
       router.push('/signin');
+    } catch (error) {
+      console.error('Error signing up:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to sign up');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -35,10 +53,10 @@ export default function SignUp() {
     <div className="flex items-center justify-center min-h-screen bg-background">
       <Card className="w-full max-w-md p-6">
         <CardHeader>
-          <CardTitle className="text-center text-2xl">Sign Up</CardTitle>
+          <CardTitle className="text-center text-2xl">Create Account</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          <form onSubmit={handleSignUp} className="space-y-4">
             <div className="grid gap-1">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -49,6 +67,7 @@ export default function SignUp() {
                 value={email}
                 placeholder="name@example.com"
                 required
+                disabled={isLoading}
               />
             </div>
             <div className="grid gap-1">
@@ -61,15 +80,16 @@ export default function SignUp() {
                 value={password}
                 placeholder="Create a password"
                 required
+                disabled={isLoading}
               />
             </div>
-            <Button onClick={handleSignUp} className="w-full">
-              Sign Up
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? 'Creating account...' : 'Create Account'}
             </Button>
-          </div>
+          </form>
           <div className="text-center mt-4">
             Already have an account?{' '}
-            <Link href="/signin" className="text-primary underline">
+            <Link href="/signin" className="text-primary hover:underline">
               Sign In
             </Link>
           </div>

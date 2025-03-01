@@ -18,13 +18,14 @@ import {
 } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { IconChartBar, IconChartLine, IconChartPie } from '@tabler/icons-react';
 import { supabase } from '@/lib/supabase-browser';
 import { User } from '@supabase/supabase-js';
-import { TaskType } from '@/components/tasks'
+import { TaskType } from '@/lib/types'
 import { ProjectType } from '@/components/projects'
+import { startOfWeek, endOfWeek, eachDayOfInterval, format, isWithinInterval } from 'date-fns';
 
 interface AnalyticsProps {
     user: User | null;
@@ -39,7 +40,6 @@ interface TimeEntry {
     duration: number;
     description: string;
 }
-
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042'];
 
@@ -57,6 +57,88 @@ export default function Analytics({ user }: AnalyticsProps) {
         projects: []
     });
 
+    const today = new Date();
+    const weekStart = startOfWeek(today);
+    const weekEnd = endOfWeek(today);
+
+    // Memoized calculations
+    const completionRate = useMemo(() => {
+        const completed = analyticsData.tasks.filter(t => t.status === 'Complete').length;
+        return analyticsData.tasks.length > 0 ? (completed / analyticsData.tasks.length) * 100 : 0;
+    }, [analyticsData.tasks]);
+
+    const tasksByStatus = useMemo(() => {
+        const statusCounts = analyticsData.tasks.reduce((acc, task) => {
+            acc[task.status] = (acc[task.status] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+
+        return Object.entries(statusCounts).map(([status, count]) => ({
+            name: status,
+            value: count
+        }));
+    }, [analyticsData.tasks]);
+
+    const weeklyActivity = useMemo(() => {
+        const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
+        return days.map(day => {
+            const dayTasks = analyticsData.tasks.filter(task => {
+                if (!task.due_date) return false;
+                const taskDate = new Date(task.due_date);
+                return isWithinInterval(taskDate, { start: day, end: day });
+            });
+
+            return {
+                name: format(day, 'EEE'),
+                total: dayTasks.length,
+                completed: dayTasks.filter(t => t.status === 'Complete').length
+            };
+        });
+    }, [analyticsData.tasks, weekStart, weekEnd]);
+
+    const projectProgress = useMemo(() => {
+        return analyticsData.projects.map(project => {
+            const projectTasks = analyticsData.tasks.filter(t => t.project === project.name);
+            const completed = projectTasks.filter(t => t.status === 'Complete').length;
+            const total = projectTasks.length;
+
+            return {
+                name: project.name,
+                progress: total > 0 ? (completed / total) * 100 : 0,
+                total,
+                completed
+            };
+        });
+    }, [analyticsData.tasks, analyticsData.projects]);
+
+    const timeTracking = useMemo(() => {
+        const totalTime = analyticsData.tasks.reduce((acc, task) => acc + (task.time_tracked || 0), 0);
+        const avgTimePerTask = analyticsData.tasks.length > 0 ? totalTime / analyticsData.tasks.length : 0;
+
+        return {
+            totalTime: Math.round(totalTime / 3600),
+            avgTimePerTask: Math.round(avgTimePerTask / 3600)
+        };
+    }, [analyticsData.tasks]);
+
+    const productivityData = useMemo(() => {
+        return analyticsData.projects.map(project => {
+            const projectTasks = analyticsData.tasks.filter(task => task.project === project.name);
+            const completedTasks = projectTasks.filter(task => task.status === 'Complete');
+            const projectTime = analyticsData.timeEntries
+                .filter(entry => entry.project_id === project.id)
+                .reduce((sum, entry) => sum + (entry.duration || 0), 0);
+
+            return {
+                name: project.name,
+                tasks: projectTasks.length,
+                completed: completedTasks.length,
+                efficiency: projectTasks.length ? (completedTasks.length / projectTasks.length) * 100 : 0,
+                time: Math.round(projectTime / 60) // Convert minutes to hours
+            };
+        });
+    }, [analyticsData.tasks, analyticsData.timeEntries, analyticsData.projects]);
+
     useEffect(() => {
         if (user) {
             fetchAnalyticsData();
@@ -64,13 +146,12 @@ export default function Analytics({ user }: AnalyticsProps) {
     }, [user, timeRange]);
 
     const fetchAnalyticsData = async () => {
+        if (!user) return;
+
+        setLoading(true);
+        setError(null);
+
         try {
-            if (!user) return;
-
-            setLoading(true);
-            setError(null);
-
-            // Calculate date range
             const now = new Date();
             const startDate = new Date();
             switch (timeRange) {
@@ -88,36 +169,31 @@ export default function Analytics({ user }: AnalyticsProps) {
                     break;
             }
 
-            // Fetch tasks
-            const { data: tasks, error: tasksError } = await supabase
-                .from('tasks')
-                .select('*')
-                .eq('user_id', user?.id)
-                .gte('created_at', startDate.toISOString());
+            const [tasksResponse, timeEntriesResponse, projectsResponse] = await Promise.all([
+                supabase
+                    .from('tasks')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .gte('created_at', startDate.toISOString()),
+                supabase
+                    .from('time_entries')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .gte('start_time', startDate.toISOString()),
+                supabase
+                    .from('projects')
+                    .select('*')
+                    .eq('user_id', user.id)
+            ]);
 
-            if (tasksError) throw tasksError;
-
-            // Fetch time entries
-            const { data: timeEntries, error: timeError } = await supabase
-                .from('time_entries')
-                .select('*')
-                .eq('user_id', user?.id)
-                .gte('start_time', startDate.toISOString());
-
-            if (timeError) throw timeError;
-
-            // Fetch projects
-            const { data: projects, error: projectsError } = await supabase
-                .from('projects')
-                .select('*')
-                .eq('user_id', user.id);
-
-            if (projectsError) throw projectsError;
+            if (tasksResponse.error) throw tasksResponse.error;
+            if (timeEntriesResponse.error) throw timeEntriesResponse.error;
+            if (projectsResponse.error) throw projectsResponse.error;
 
             setAnalyticsData({
-                tasks: tasks || [],
-                timeEntries: timeEntries || [],
-                projects: projects || []
+                tasks: tasksResponse.data || [],
+                timeEntries: timeEntriesResponse.data || [],
+                projects: projectsResponse.data || []
             });
         } catch (err) {
             console.error('Error fetching analytics data:', err);
@@ -127,34 +203,25 @@ export default function Analytics({ user }: AnalyticsProps) {
         }
     };
 
-    const processData = () => {
-        const { tasks, timeEntries, projects } = analyticsData;
-
-        // Process productivity data
-        const productivityData = projects.map(project => {
-            const projectTasks = tasks.filter(task => task.project.toString() === project.id.toString());
-            const completedTasks = projectTasks.filter(task => task.status === 'Complete');
-            const projectTime = timeEntries
-                .filter(entry => entry.project_id.toString() === project.id.toString())
-                .reduce((sum, entry) => sum + (entry.duration || 0), 0);
-
-            return {
-                name: project.name,
-                tasks: projectTasks.length,
-                completed: completedTasks.length,
-                efficiency: projectTasks.length ? (completedTasks.length / projectTasks.length) * 100 : 0,
-                time: Math.round(projectTime / 60) // Convert minutes to hours
-            };
-        });
-
-        return {
-            productivityData,
-            totalTasks: tasks.length,
-            completedTasks: tasks.filter(task => task.status === 'Complete').length,
-            totalTime: Math.round(timeEntries.reduce((sum, entry) => sum + (entry.duration || 0), 0) / 60),
-            efficiency: tasks.length ?
-                (tasks.filter(task => task.status === 'Complete').length / tasks.length) * 100 : 0
-        };
+    const CustomTooltip = ({ active, payload, label }: {
+        active?: boolean;
+        payload?: Array<{ color: string; name: string; value: number }>;
+        label?: string;
+    }) => {
+        if (active && payload && payload.length) {
+            return (
+                <div className="bg-background border rounded-lg p-4 shadow-lg">
+                    <p className="font-medium">{label}</p>
+                    {payload.map((entry, index) => (
+                        <p key={index} style={{ color: entry.color }}>
+                            {entry.name}: {entry.value}
+                            {entry.name === 'time' ? ' hours' : ''}
+                        </p>
+                    ))}
+                </div>
+            );
+        }
+        return null;
     };
 
     if (loading) {
@@ -172,29 +239,6 @@ export default function Analytics({ user }: AnalyticsProps) {
             </div>
         );
     }
-
-    const data = processData();
-
-    const CustomTooltip = ({ active, payload, label }: {
-        active?: boolean;
-        payload?: any[];
-        label?: string;
-    }) => {
-        if (active && payload && payload.length) {
-            return (
-                <div className="bg-background border rounded-lg p-4 shadow-lg">
-                    <p className="font-medium">{label}</p>
-                    {payload.map((entry: any, index: number) => (
-                        <p key={index} style={{ color: entry.color }}>
-                            {entry.name}: {entry.value}
-                            {entry.name === 'time' ? ' hours' : ''}
-                        </p>
-                    ))}
-                </div>
-            );
-        }
-        return null;
-    };
 
     return (
         <motion.div
@@ -228,7 +272,7 @@ export default function Analytics({ user }: AnalyticsProps) {
                         <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{data.totalTasks}</div>
+                        <div className="text-2xl font-bold">{analyticsData.tasks.length}</div>
                         <div className="flex items-center text-xs text-muted-foreground">
                             <span>In selected period</span>
                         </div>
@@ -239,20 +283,11 @@ export default function Analytics({ user }: AnalyticsProps) {
                         <CardTitle className="text-sm font-medium">Completed Tasks</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{data.completedTasks}</div>
-                        <div className="flex items-center text-xs text-muted-foreground">
-                            <span>{Math.round((data.completedTasks / data.totalTasks) * 100)}% completion rate</span>
+                        <div className="text-2xl font-bold">
+                            {analyticsData.tasks.filter(t => t.status === 'Complete').length}
                         </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Average Efficiency</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{Math.round(data.efficiency)}%</div>
                         <div className="flex items-center text-xs text-muted-foreground">
-                            <span>Task completion efficiency</span>
+                            <span>{completionRate.toFixed(1)}% completion rate</span>
                         </div>
                     </CardContent>
                 </Card>
@@ -261,10 +296,18 @@ export default function Analytics({ user }: AnalyticsProps) {
                         <CardTitle className="text-sm font-medium">Time Tracked</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{data.totalTime} hrs</div>
+                        <div className="text-2xl font-bold">{timeTracking.totalTime} hrs</div>
                         <div className="flex items-center text-xs text-muted-foreground">
-                            <span>Total hours tracked</span>
+                            <span>Avg: {timeTracking.avgTimePerTask}h per task</span>
                         </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{analyticsData.projects.length}</div>
                     </CardContent>
                 </Card>
             </div>
@@ -295,7 +338,7 @@ export default function Analytics({ user }: AnalyticsProps) {
                         </CardHeader>
                         <CardContent className="pt-4">
                             <ResponsiveContainer width="100%" height={400}>
-                                <LineChart data={data.productivityData}>
+                                <LineChart data={productivityData}>
                                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                                     <XAxis
                                         dataKey="name"
@@ -344,7 +387,7 @@ export default function Analytics({ user }: AnalyticsProps) {
                         </CardHeader>
                         <CardContent className="pt-4">
                             <ResponsiveContainer width="100%" height={400}>
-                                <BarChart data={data.productivityData}>
+                                <BarChart data={productivityData}>
                                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                                     <XAxis
                                         dataKey="name"
@@ -384,18 +427,16 @@ export default function Analytics({ user }: AnalyticsProps) {
                                 <ResponsiveContainer width="100%" height={300}>
                                     <PieChart>
                                         <Pie
-                                            data={[
-                                                { name: 'Completed', value: data.completedTasks },
-                                                { name: 'Pending', value: data.totalTasks - data.completedTasks }
-                                            ]}
+                                            data={tasksByStatus}
                                             cx="50%"
                                             cy="50%"
-                                            innerRadius={60}
+                                            labelLine={false}
+                                            label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
                                             outerRadius={80}
-                                            paddingAngle={5}
+                                            fill="#8884d8"
                                             dataKey="value"
                                         >
-                                            {data.productivityData.map((_, index) => (
+                                            {tasksByStatus.map((entry, index) => (
                                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                             ))}
                                         </Pie>
@@ -415,7 +456,7 @@ export default function Analytics({ user }: AnalyticsProps) {
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-4">
-                                    {data.productivityData.map((project, index) => (
+                                    {productivityData.map((project, index) => (
                                         <div key={project.name} className="space-y-2">
                                             <div className="flex justify-between text-sm">
                                                 <span>{project.name}</span>
@@ -435,6 +476,117 @@ export default function Analytics({ user }: AnalyticsProps) {
                     </div>
                 </TabsContent>
             </Tabs>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Completion Rate</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold">{completionRate.toFixed(1)}%</div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Total Tasks</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold">{analyticsData.tasks.length}</div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Time Tracked</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold">{timeTracking.totalTime}h</div>
+                        <div className="text-sm text-muted-foreground">
+                            Avg: {timeTracking.avgTimePerTask}h per task
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Active Projects</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold">{analyticsData.projects.length}</div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Weekly Activity</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={weeklyActivity}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="name" />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Bar dataKey="total" fill="#8884d8" name="Total Tasks" />
+                                    <Bar dataKey="completed" fill="#82ca9d" name="Completed" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Tasks by Status</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={tasksByStatus}
+                                        cx="50%"
+                                        cy="50%"
+                                        labelLine={false}
+                                        label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                                        outerRadius={80}
+                                        fill="#8884d8"
+                                        dataKey="value"
+                                    >
+                                        {tasksByStatus.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip content={<CustomTooltip />} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Project Progress</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={projectProgress}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" />
+                                <YAxis />
+                                <Tooltip />
+                                <Bar dataKey="progress" fill="#8884d8" name="Progress (%)" />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </CardContent>
+            </Card>
         </motion.div>
     );
 }
