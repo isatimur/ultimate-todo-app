@@ -8,9 +8,20 @@ interface TaskStatisticsProps {
 
 export function TaskStatistics({ tasks }: TaskStatisticsProps) {
   const totalTasks = tasks.length
-  const completedTasks = tasks.filter(task => task.completed).length
+  const completedTasks = tasks.filter(task => task.status === 'Complete').length
   const highPriorityTasks = tasks.filter(task => task.priority === 'High').length
-  const averageProgress = tasks.reduce((sum, task) => sum + task.progress, 0) / totalTasks || 0
+  
+  // Calculate progress based on status
+  const progressMap = {
+    'To Do': 0,
+    'In Progress': 50,
+    'In Review': 75,
+    'Complete': 100
+  }
+  
+  const averageProgress = tasks.length > 0 
+    ? tasks.reduce((sum, task) => sum + progressMap[task.status], 0) / totalTasks 
+    : 0
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

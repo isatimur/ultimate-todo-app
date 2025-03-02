@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Task } from '@/lib/types'
+import { Task, TaskStatus } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -31,6 +31,12 @@ interface TaskDetailsProps {
       title: string
       completed: boolean
     }[]
+    project_details?: {
+      id: string
+      name: string
+      color: string
+      description?: string
+    } | null
   }
 }
 
@@ -50,11 +56,9 @@ export function TaskDetails({ task: initialTask }: TaskDetailsProps) {
   const handleStatusChange = async (checked: boolean) => {
     setIsLoading(true)
     try {
-      const newStatus = checked ? 'Complete' : 'To Do'
+      const newStatus = checked ? 'Complete' : 'To Do' as TaskStatus
       const updates = {
         status: newStatus,
-        completed: checked,
-        completed_at: checked ? new Date().toISOString() : null,
         updated_at: new Date().toISOString()
       }
 
@@ -65,7 +69,15 @@ export function TaskDetails({ task: initialTask }: TaskDetailsProps) {
 
       if (error) throw error
 
-      setTask(prev => ({ ...prev, ...updates }))
+      setTask(prev => {
+        const updatedTask = {
+          ...prev,
+          ...updates
+        } as typeof prev
+        
+        return updatedTask
+      })
+      
       toast.success(checked ? 'Task completed!' : 'Task reopened')
     } catch (error) {
       console.error('Error updating task status:', error)
@@ -78,30 +90,47 @@ export function TaskDetails({ task: initialTask }: TaskDetailsProps) {
   const handleSaveChanges = async () => {
     setIsLoading(true)
     try {
-      const updates = {
+      // Create a base updates object
+      const baseUpdates = {
         title: editedTitle,
         description: editedDescription,
-        due_date: editedDueDate?.toISOString(),
         updated_at: new Date().toISOString()
-      }
+      };
 
+      // Create the final updates object with or without due_date
+      const updates = editedDueDate 
+        ? { ...baseUpdates, due_date: editedDueDate.toISOString() }
+        : baseUpdates;
+
+      // Send the update to the database
       const { error } = await supabase
         .from('tasks')
         .update(updates)
-        .eq('id', task.id)
+        .eq('id', task.id);
 
-      if (error) throw error
+      if (error) throw error;
 
-      setTask(prev => ({ ...prev, ...updates }))
-      setIsEditing(false)
-      toast.success('Task updated successfully')
+      // Update the local state with type assertion to ensure it matches Task type
+      setTask(prev => {
+        const updatedTask = {
+          ...prev,
+          ...updates,
+          // Preserve the original due_date if not updated
+          due_date: editedDueDate ? editedDueDate.toISOString() : prev.due_date
+        } as typeof prev; // Type assertion to ensure it matches the expected type
+        
+        return updatedTask;
+      });
+
+      setIsEditing(false);
+      toast.success('Task updated successfully');
     } catch (error) {
-      console.error('Error updating task:', error)
-      toast.error('Failed to update task')
+      console.error('Error updating task:', error);
+      toast.error('Failed to update task');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this task?')) return
@@ -125,7 +154,7 @@ export function TaskDetails({ task: initialTask }: TaskDetailsProps) {
     }
   }
 
-  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && !task.completed
+  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'Complete'
 
   return (
     <div className="space-y-6">
@@ -183,7 +212,7 @@ export function TaskDetails({ task: initialTask }: TaskDetailsProps) {
         <CardHeader className="flex flex-row items-start justify-between space-y-0">
           <div className="flex items-start gap-4 flex-1">
             <Checkbox
-              checked={task.completed}
+              checked={task.status === 'Complete'}
               onCheckedChange={handleStatusChange}
               disabled={isLoading}
             />
@@ -195,7 +224,7 @@ export function TaskDetails({ task: initialTask }: TaskDetailsProps) {
                   className="text-xl font-semibold"
                 />
               ) : (
-                <h2 className={`text-xl font-semibold ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
+                <h2 className={`text-xl font-semibold ${task.status === 'Complete' ? 'line-through text-muted-foreground' : ''}`}>
                   {task.title}
                 </h2>
               )}
@@ -252,7 +281,7 @@ export function TaskDetails({ task: initialTask }: TaskDetailsProps) {
                 </span>
               )}
             </div>
-            {task.time_tracked > 0 && (
+            {task.time_tracked && task.time_tracked > 0 && (
               <div className="flex items-center gap-2 text-sm">
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 <span>{task.time_tracked}h tracked</span>
@@ -284,10 +313,10 @@ export function TaskDetails({ task: initialTask }: TaskDetailsProps) {
               <Clock className="h-4 w-4" />
               Created {formatDistanceToNow(new Date(task.created_at), { addSuffix: true })}
             </div>
-            {task.completed && task.completed_at && (
+            {task.status === 'Complete' && (
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4" />
-                Completed {formatDistanceToNow(new Date(task.completed_at), { addSuffix: true })}
+                Completed {formatDistanceToNow(new Date(task.updated_at), { addSuffix: true })}
               </div>
             )}
             {isOverdue && (

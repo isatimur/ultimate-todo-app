@@ -166,12 +166,16 @@ export function TaskBoard({ initialTasks, userId }: TaskBoardProps) {
         }
         setTasks(prev => [newTask, ...prev])
         toast.success('Task created successfully')
+        return newTask; // Return the created task
       }
+      
+      throw new Error('Failed to create task: No data returned');
     } catch (error) {
       console.error('Error creating task:', error)
       toast.error('Failed to create task')
       // Refresh tasks in case of error
       await refreshTasks()
+      throw error; // Re-throw the error to be handled by the caller
     } finally {
       setIsLoading(false)
     }

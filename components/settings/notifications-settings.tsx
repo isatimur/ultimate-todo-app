@@ -51,7 +51,7 @@ const notificationsFormSchema = z.object({
 
 type NotificationsFormValues = z.infer<typeof notificationsFormSchema>;
 
-export function NotificationSettings({ user }: { user: User }) {
+export default function NotificationsSettings({ user }: { user: User }) {
   const [isLoading, setIsLoading] = useState(false);
 
   // Default values from user data

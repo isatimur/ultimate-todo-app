@@ -223,7 +223,7 @@ export function ProjectsView({ userId, initialProjects }: ProjectsViewProps) {
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="text-destructive"
-                          onClick={() => deleteProject(project.id)}
+                          onClick={() => deleteProject(String(project.id))}
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
                           Delete

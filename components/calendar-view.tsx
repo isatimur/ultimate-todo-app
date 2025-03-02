@@ -43,6 +43,16 @@ import {
 import { enUS } from 'date-fns/locale'
 import { QuickAddTaskNatural } from './quick-add-task-natural'
 
+/**
+ * Props interface for the CalendarView component
+ * 
+ * @interface CalendarViewProps
+ * @property {Task[]} tasks - Array of tasks to display in the calendar
+ * @property {Function} onTaskUpdate - Callback function to update a task
+ * @property {Function} onTaskDelete - Callback function to delete a task
+ * @property {Function} onAddTask - Callback function to add a new task
+ * @property {any[]} projects - Array of projects for task assignment
+ */
 interface CalendarViewProps {
   tasks: Task[]
   onTaskUpdate: (taskId: string, updates: Partial<Task>) => Promise<void>
@@ -51,6 +61,16 @@ interface CalendarViewProps {
   projects: any[]
 }
 
+/**
+ * Props interface for the TaskItem component
+ * 
+ * @interface TaskItemProps
+ * @property {Task} task - The task to display
+ * @property {Function} onSelect - Callback when task is selected
+ * @property {Function} onUpdate - Callback to update the task
+ * @property {Function} onDelete - Callback to delete the task
+ * @property {boolean} [compact] - Whether to display in compact mode
+ */
 interface TaskItemProps {
   task: Task;
   onSelect: (task: Task) => void;
@@ -59,6 +79,12 @@ interface TaskItemProps {
   compact?: boolean;
 }
 
+/**
+ * Renders an individual task item with appropriate styling based on priority and status
+ * 
+ * @param {TaskItemProps} props - The component props
+ * @returns {JSX.Element} The rendered task item
+ */
 function TaskItem({ task, onSelect, onUpdate, onDelete, compact = false }: TaskItemProps) {
   const priorityColors = {
     Low: "bg-green-500",
@@ -95,6 +121,13 @@ function TaskItem({ task, onSelect, onUpdate, onDelete, compact = false }: TaskI
   );
 }
 
+/**
+ * Main calendar view component that displays tasks in different calendar layouts
+ * Supports month, week, and day views with drag-and-drop task management
+ * 
+ * @param {CalendarViewProps} props - The component props
+ * @returns {JSX.Element} The rendered calendar view
+ */
 export function CalendarView({ tasks, onTaskUpdate, onTaskDelete, onAddTask, projects }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(() => new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
@@ -111,10 +144,22 @@ export function CalendarView({ tasks, onTaskUpdate, onTaskDelete, onAddTask, pro
   const monthEnd = endOfMonth(currentDate)
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd })
 
+  /**
+   * Gets the number of days in a month
+   * 
+   * @param {Date} date - The date to get the month from
+   * @returns {number} The number of days in the month
+   */
   const getDaysInMonth = (date: Date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
   }
 
+  /**
+   * Gets the day of the week (0-6) for the first day of a month
+   * 
+   * @param {Date} date - The date to get the month from
+   * @returns {number} The day of the week (0 = Sunday, 6 = Saturday)
+   */
   const getFirstDayOfMonth = (date: Date) => {
     return new Date(date.getFullYear(), date.getMonth(), 1).getDay()
   }
@@ -136,6 +181,9 @@ export function CalendarView({ tasks, onTaskUpdate, onTaskDelete, onAddTask, pro
     { key: 'saturday', label: 'Sat' }
   ]
 
+  /**
+   * Navigates to the previous period (month or week) based on current view
+   */
   const handlePrevPeriod = () => {
     if (view === 'month') {
       setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))
@@ -144,6 +192,9 @@ export function CalendarView({ tasks, onTaskUpdate, onTaskDelete, onAddTask, pro
     }
   }
 
+  /**
+   * Navigates to the next period (month or week) based on current view
+   */
   const handleNextPeriod = () => {
     if (view === 'month') {
       setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))

@@ -515,6 +515,9 @@ export interface Database {
 
 type PublicSchema = Database[Extract<keyof Database, "public">]
 
+export type DbTable<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row']
+export type DbEnum<T extends keyof Database['public']['Enums']> = Database['public']['Enums'][T]
+
 export type Tables<
   PublicTableNameOrOptions extends
     | keyof (PublicSchema["Tables"] & PublicSchema["Views"])
@@ -639,18 +642,14 @@ export interface Profile {
   updated_at?: string;
 }
 
-export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row']
-export type Enums<T extends keyof Database['public']['Enums']> = Database['public']['Enums'][T]
-
-// Helper types for common queries
-export type TeamWithMembers = Tables<'teams'> & {
-  members: (Tables<'team_members'> & {
-    profiles: Tables<'profiles'>
+export type TeamWithMembers = DbTable<'teams'> & {
+  members: (DbTable<'team_members'> & {
+    profiles: DbTable<'profiles'>
   })[]
 }
 
-export type TeamMemberWithProfile = Tables<'team_members'> & {
-  profiles: Tables<'profiles'>
+export type TeamMemberWithProfile = DbTable<'team_members'> & {
+  profiles: DbTable<'profiles'>
 }
 
-export type TeamInvitation = Tables<'team_invitations'>
+export type TeamInvitation = DbTable<'team_invitations'>

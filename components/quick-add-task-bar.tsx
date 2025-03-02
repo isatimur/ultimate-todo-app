@@ -59,9 +59,7 @@ export function QuickAddTaskBar({
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         priority: 'Medium',
-        category: 'Personal',
-        completed: false,
-        progress: 0
+        category: 'Personal'
       }
       
       await onAddTask(newTask)

@@ -47,7 +47,9 @@ const emailSchema = z.discriminatedUnion('type', [
 
 export async function POST(req: Request) {
     try {
-        const cookieStore = cookies();
+        // Await the cookies() function as it returns a Promise in Next.js 15
+        const cookieStore = await cookies();
+        
         // Verify authentication
         const supabase = createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -55,7 +57,8 @@ export async function POST(req: Request) {
             {
                 cookies: {
                     get(name: string) {
-                        return cookieStore.get(name)?.value;
+                        const cookie = cookieStore.get(name);
+                        return cookie?.value;
                     },
                     set(name: string, value: string, options: any) {
                         try {

@@ -10,6 +10,11 @@ export const metadata: Metadata = {
   description: 'Edit your project details',
 }
 
+// This helps Next.js understand the structure of the params
+export async function generateStaticParams() {
+  return []
+}
+
 async function EditProjectContent({ id }: { id: string }) {
   const supabase = await createClient()
 
@@ -36,7 +41,7 @@ async function EditProjectContent({ id }: { id: string }) {
   )
 }
 
-export default async function EditProjectPage({ params }: { params: { id: string } }) {
+export default async function EditProjectPage({ params }: any) {
   return (
     <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8">
       <h1 className="text-4xl font-bold tracking-tight text-foreground mb-8">

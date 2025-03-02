@@ -35,7 +35,7 @@ export async function createTeam(name: string, description: string) {
 }
 
 export async function inviteTeamMember(teamId: string, email: string, role: 'admin' | 'member') {
-    const supabase = createServerActionClient({ cookies });
+    const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) throw new Error('Not authenticated');
@@ -72,7 +72,7 @@ export async function inviteTeamMember(teamId: string, email: string, role: 'adm
 }
 
 export async function removeTeamMember(teamId: string, userId: string) {
-    const supabase = createServerActionClient({ cookies });
+    const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) throw new Error('Not authenticated');

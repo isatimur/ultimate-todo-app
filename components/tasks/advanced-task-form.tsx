@@ -223,7 +223,10 @@ export function AdvancedTaskForm({ projects, teamId, userId }: AdvancedTaskFormP
   useHotkeys('alt+2', () => setActiveTab('schedule'), { enableOnFormTags: true })
   useHotkeys('alt+3', () => setActiveTab('subtasks'), { enableOnFormTags: true })
   useHotkeys('alt+4', () => setActiveTab('advanced'), { enableOnFormTags: true })
-  useHotkeys('ctrl+enter, cmd+enter', handleSubmit, { enableOnFormTags: true })
+  useHotkeys('ctrl+enter, cmd+enter', (keyboardEvent) => {
+    keyboardEvent.preventDefault();
+    handleSubmit();
+  }, { enableOnFormTags: true })
   useHotkeys('esc', () => router.back(), { enableOnFormTags: true })
   
   // Additional keyboard shortcuts for quick actions
@@ -717,7 +720,7 @@ export function AdvancedTaskForm({ projects, teamId, userId }: AdvancedTaskFormP
                     {projects.map((project) => (
                       <SelectItem 
                         key={project.id} 
-                        value={project.id || `project_${project.name.replace(/\s+/g, '_').toLowerCase()}`}
+                        value={String(project.id) || `project_${project.name.replace(/\s+/g, '_').toLowerCase()}`}
                       >
                         <span className="flex items-center gap-2">
                           <span className="w-2 h-2 rounded-full" 

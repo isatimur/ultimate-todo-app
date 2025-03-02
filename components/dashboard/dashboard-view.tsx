@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Task, User } from '@/lib/types'
+import { Task, UserProfile, Project } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
 import { TaskList } from '@/components/tasks/task-list'
 import { CreateTaskButton } from '@/components/tasks/create-task-button'
@@ -19,12 +19,14 @@ interface DashboardStats {
 
 interface DashboardViewProps {
   initialTasks: Task[]
+  initialProjects: Project[]
   stats: DashboardStats
-  user: User
+  user: UserProfile
 }
 
-export function DashboardView({ initialTasks, stats, user }: DashboardViewProps) {
+export function DashboardView({ initialTasks, initialProjects, stats, user }: DashboardViewProps) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
+  const [projects, setProjects] = useState<Project[]>(initialProjects || [])
   const { toast } = useToast()
 
   useEffect(() => {
@@ -52,6 +54,71 @@ export function DashboardView({ initialTasks, stats, user }: DashboardViewProps)
       supabase.removeChannel(channel)
     }
   }, [user.id])
+
+  // Also listen for project changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('projects')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'projects',
+        filter: `user_id=eq.${user.id}`,
+      }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setProjects(prev => [payload.new as Project, ...prev])
+        } else if (payload.eventType === 'UPDATE') {
+          setProjects(prev => prev.map(project => 
+            project.id === payload.new.id ? payload.new as Project : project
+          ))
+        } else if (payload.eventType === 'DELETE') {
+          setProjects(prev => prev.filter(project => project.id !== payload.old.id))
+        }
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [user.id])
+
+  const handleCreateTask = async (task: Partial<Task>): Promise<Task> => {
+    try {
+      // Add user_id to the task
+      const taskWithUserId = {
+        ...task,
+        user_id: user.id,
+        status: task.status || 'To Do',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert(taskWithUserId)
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Task created",
+        description: "Your task has been created successfully.",
+      });
+
+      return data as Task;
+    } catch (error) {
+      console.error('Error creating task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create task. Please try again.",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -99,10 +166,10 @@ export function DashboardView({ initialTasks, stats, user }: DashboardViewProps)
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle>Recent Tasks</CardTitle>
-          <CreateTaskButton />
+          <CreateTaskButton onCreateTask={handleCreateTask} />
         </CardHeader>
         <CardContent>
-          <TaskList tasks={tasks} />
+          <TaskList initialTasks={tasks} userId={user.id} projects={projects} />
         </CardContent>
       </Card>
     </div>

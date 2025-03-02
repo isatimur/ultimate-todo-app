@@ -37,14 +37,19 @@ export function TaskDetails({ task, onClose, onEdit, onDelete }: TaskDetailsProp
           )}
           <div className="flex items-center justify-between text-sm">
             <span>Date: {task.date}</span>
-            <span>Time: {task.startTime} - {task.endTime}</span>
+            <span>Time: {task.start_time || 'N/A'} - {task.end_time || 'N/A'}</span>
           </div>
           <div>
-            <span className="text-sm text-muted-foreground">Progress: {task.progress}%</span>
+            <span className="text-sm text-muted-foreground">Status: {task.status}</span>
             <div className="w-full bg-secondary mt-1 rounded-full h-2.5">
               <div
                 className="bg-primary h-2.5 rounded-full"
-                style={{ width: `${task.progress}%` }}
+                style={{ 
+                  width: task.status === 'Complete' ? '100%' : 
+                         task.status === 'In Review' ? '75%' : 
+                         task.status === 'In Progress' ? '50%' : 
+                         '25%' 
+                }}
               ></div>
             </div>
           </div>

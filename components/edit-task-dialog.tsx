@@ -24,8 +24,8 @@ export function EditTaskDialog({ open, onOpenChange, onUpdateTask, task }: EditT
       priority: formData.get('priority') as Task['priority'],
       category: formData.get('category') as Task['category'],
       date: formData.get('date') as string,
-      startTime: formData.get('startTime') as string,
-      endTime: formData.get('endTime') as string,
+      start_time: formData.get('startTime') as string,
+      end_time: formData.get('endTime') as string,
     }
     onUpdateTask(task.id, updates)
   }
@@ -78,11 +78,11 @@ export function EditTaskDialog({ open, onOpenChange, onUpdateTask, task }: EditT
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="startTime" className="text-right">Start Time</Label>
-              <Input id="startTime" name="startTime" type="time" defaultValue={task.startTime} className="col-span-3" />
+              <Input id="startTime" name="startTime" type="time" defaultValue={task.start_time} className="col-span-3" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="endTime" className="text-right">End Time</Label>
-              <Input id="endTime" name="endTime" type="time" defaultValue={task.endTime} className="col-span-3" />
+              <Input id="endTime" name="endTime" type="time" defaultValue={task.end_time} className="col-span-3" />
             </div>
           </div>
           <DialogFooter>

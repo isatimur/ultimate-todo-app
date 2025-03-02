@@ -204,24 +204,24 @@ export function TaskFilters({ tasks, projects, onFilterChange }: TaskFiltersProp
             <label className="text-sm font-medium">Due Date Range</label>
             <div className="flex space-x-2">
               <DatePicker
-                selected={filters.dueDateRange.start}
-                onChange={(date) =>
+                date={filters.dueDateRange.start || undefined}
+                setDate={(date) =>
                   handleFilterChange('dueDateRange', {
                     ...filters.dueDateRange,
-                    start: date,
+                    start: date || null,
                   })
                 }
-                placeholderText="Start date"
+                className="w-full"
               />
               <DatePicker
-                selected={filters.dueDateRange.end}
-                onChange={(date) =>
+                date={filters.dueDateRange.end || undefined}
+                setDate={(date) =>
                   handleFilterChange('dueDateRange', {
                     ...filters.dueDateRange,
-                    end: date,
+                    end: date || null,
                   })
                 }
-                placeholderText="End date"
+                className="w-full"
               />
             </div>
           </div>

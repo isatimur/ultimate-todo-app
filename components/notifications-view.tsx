@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
@@ -27,11 +27,7 @@ export function NotificationsView({ userId }: NotificationsViewProps) {
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()
 
-  useEffect(() => {
-    loadNotifications()
-  }, [userId])
-
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     try {
       setIsLoading(true)
       const { data, error } = await supabase
@@ -45,11 +41,16 @@ export function NotificationsView({ userId }: NotificationsViewProps) {
       setNotifications(data || [])
     } catch (error) {
       console.error('Error loading notifications:', error)
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       toast.error('Failed to load notifications')
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [userId, supabase])
+
+  useEffect(() => {
+    loadNotifications()
+  }, [loadNotifications])
 
   const markAsRead = async (notificationId: string) => {
     try {

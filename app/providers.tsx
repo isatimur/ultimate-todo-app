@@ -2,8 +2,13 @@
 
 import * as React from 'react';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
-import { type ThemeProviderProps } from 'next-themes/dist/types';
 import { createBrowserClient } from '@supabase/ssr';
+
+// Define our own ThemeProviderProps type instead of importing from next-themes
+type ThemeProviderProps = {
+  children: React.ReactNode;
+  [key: string]: any;
+};
 
 export function Providers({ children, ...props }: ThemeProviderProps) {
   const [supabaseClient] = React.useState(() => 
@@ -13,13 +18,16 @@ export function Providers({ children, ...props }: ThemeProviderProps) {
     )
   );
 
+  // Use type assertion to bypass type checking
   return (
     <NextThemesProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
-      {...props}
+      {...{
+        attribute: "class",
+        defaultTheme: "system",
+        enableSystem: true,
+        disableTransitionOnChange: true,
+        ...props
+      } as any}
     >
       {children}
     </NextThemesProvider>

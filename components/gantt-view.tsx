@@ -27,13 +27,30 @@ export function GanttView({ tasks, onUpdateTask }: GanttViewProps) {
   const [visibleEndDate, setVisibleEndDate] = useState(new Date())
   const containerRef = useRef<HTMLDivElement>(null)
 
+  // Calculate task duration in days
+  const getTaskDuration = (task: Task): number => {
+    if (!task.due_date) return 1; // Default to 1 day if no due date
+    
+    const startDate = new Date(task.date);
+    const dueDate = new Date(task.due_date);
+    
+    // Calculate difference in days
+    const diffTime = Math.abs(dueDate.getTime() - startDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays > 0 ? diffDays : 1; // Ensure at least 1 day
+  };
+
   useEffect(() => {
     if (tasks.length > 0) {
-      const dates = tasks.flatMap(task => [new Date(task.date), addDays(new Date(task.date), task.duration || 1)])
-      setStartDate(new Date(Math.min(...dates.map(d => d.getTime()))))
-      setEndDate(new Date(Math.max(...dates.map(d => d.getTime()))))
+      const dates = tasks.flatMap(task => [
+        new Date(task.date), 
+        new Date(task.due_date || task.date) // Use due_date if available, otherwise use date
+      ]);
+      setStartDate(new Date(Math.min(...dates.map(d => d.getTime()))));
+      setEndDate(new Date(Math.max(...dates.map(d => d.getTime()))));
     }
-  }, [tasks])
+  }, [tasks]);
 
   useEffect(() => {
     setVisibleStartDate(startDate)
@@ -78,7 +95,7 @@ export function GanttView({ tasks, onUpdateTask }: GanttViewProps) {
 
   const getTaskWidth = (task: Task) => {
     const totalUnits = getUnitsBetween(visibleStartDate, visibleEndDate)
-    const taskDuration = task.duration || 1
+    const taskDuration = getTaskDuration(task)
     return (taskDuration / totalUnits) * 100
   }
 
@@ -96,7 +113,7 @@ export function GanttView({ tasks, onUpdateTask }: GanttViewProps) {
     const newStartDate = addDays(new Date(draggedTask.date), unitsMoved);
     
     // Ensure we update both date and due_date to maintain task duration
-    const duration = draggedTask.duration || 1;
+    const duration = getTaskDuration(draggedTask);
     const newDueDate = addDays(newStartDate, duration);
 
     try {
@@ -209,7 +226,7 @@ export function GanttView({ tasks, onUpdateTask }: GanttViewProps) {
                               <TooltipContent>
                                 <p><strong>{task.title}</strong></p>
                                 <p>Start: {task.date}</p>
-                                <p>Duration: {task.duration} days</p>
+                                <p>Duration: {getTaskDuration(task)} days</p>
                                 <p>Category: {task.category}</p>
                               </TooltipContent>
                             </Tooltip>

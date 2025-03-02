@@ -1,3 +1,5 @@
+import { supabase } from './supabase-browser';
+
 export type NotificationType = 
     | 'task_assigned'
     | 'task_completed'

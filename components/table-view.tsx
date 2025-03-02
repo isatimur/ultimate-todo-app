@@ -35,9 +35,9 @@ export function TableView({ tasks, onTaskUpdate }: TableViewProps) {
       header: 'Done',
       cell: ({ row }) => (
         <Checkbox
-          checked={row.original.completed}
+          checked={row.original.status === 'Complete'}
           onCheckedChange={(checked) => 
-            onTaskUpdate(row.original.id, { completed: checked as boolean })
+            onTaskUpdate(row.original.id, { status: checked ? 'Complete' : 'To Do' })
           }
         />
       ),
@@ -66,11 +66,6 @@ export function TableView({ tasks, onTaskUpdate }: TableViewProps) {
     {
       accessorKey: 'date',
       header: 'Date',
-    },
-    {
-      accessorKey: 'progress',
-      header: 'Progress',
-      cell: ({ row }) => `${row.original.progress}%`,
     },
   ]
 

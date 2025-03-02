@@ -6,11 +6,11 @@ import {supabase} from '@/lib/supabase-browser';
 import {Team} from '@/types/team';
 import {Badge} from '@/components/ui/badge';
 import {UsersIcon, FolderIcon, CheckCircle2Icon, ClockIcon, ActivityIcon, CalendarIcon, TrendingUpIcon} from 'lucide-react';
-import {TaskType} from '../tasks';
-import {ProjectType} from '../projects';
+import {ProjectType} from '@/types/project';
 import {Progress} from '../ui/progress';
 import {Avatar, AvatarFallback, AvatarImage} from '../ui/avatar';
 import {ScrollArea} from '../ui/scroll-area';
+import { TaskType } from '@/types/project';
 
 interface TeamDashboardProps {
     team: Team;
@@ -82,9 +82,9 @@ export default function TeamDashboard({team, tasks, projects}: TeamDashboardProp
                         <div className="flex mt-4 space-x-1">
                             {team.members.slice(0, 4).map(member => (
                                 <Avatar key={member.id} className="h-6 w-6">
-                                    <AvatarImage src={member.profiles?.avatar_url || ''} />
+                                    <AvatarImage src={member.user?.avatar_url || ''} />
                                     <AvatarFallback>
-                                        {member.profiles?.full_name?.[0] || member.profiles?.email?.[0]}
+                                        {member.user?.full_name?.[0] || member.user?.email?.[0]}
                                     </AvatarFallback>
                                 </Avatar>
                             ))}

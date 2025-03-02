@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { MoreHorizontal, Plus, Trash2 } from 'lucide-react'
 import { TaskCard } from "./task-card"
 import { CreateTaskDialog } from "./create-task-dialog"
-import type { Column, Task } from "@/lib/types"
+import type { Column, Task, TaskStatus } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 
 const initialColumns: Column[] = [
@@ -21,12 +21,16 @@ const initialColumns: Column[] = [
         description: "Create a modern landing page for a finance company with focus on user experience and conversion optimization.",
         priority: "Low",
         date: "31 Oct",
+        due_date: "2023-10-31",
+        status: "To Do",
         category: "Errands",
-        completed: false,
-        progress: 0,
+        user_id: "user123",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
         recurrence: "None",
       },
-    ]
+    ],
+    order: 0
   },
   {
     id: "in-progress",
@@ -37,48 +41,41 @@ const initialColumns: Column[] = [
         title: "Rent Car Mobile Apps",
         priority: "Medium",
         date: "20 Oct",
+        due_date: "2023-10-20",
+        status: "In Progress",
         category: "Errands",
-        completed: false,
-        progress: 0,
+        user_id: "user123",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
         recurrence: "None",
-        description: "Develop a mobile application for car rental services with booking and payment features."
+        description: "Develop a mobile application for car rental services with booking and payment features.",
       }
-    ]
+    ],
+    order: 1
   },
   {
     id: "done",
     title: "Done",
-    tasks: [
-      {
-        id: "3",
-        title: "Sales Management UI Component",
-        priority: "High",
-        date: "18 Oct",
-        category: "Errands",
-        completed: false,
-        progress: 0,
-        recurrence: "None",
-        description: "Design and implement reusable UI components for the sales management dashboard."
-      }
-    ]
+    tasks: [],
+    order: 2
   }
-]
+];
 
 export function Board() {
-  const [columns, setColumns] = useState<Column[]>(initialColumns)
+  const [columns, setColumns] = useState<Column[]>(initialColumns);
+  const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+  const [targetColumnId, setTargetColumnId] = useState<string | null>(null);
 
   const onDragEnd = (result: DropResult) => {
-    const { source, destination } = result;
+    const { destination, source, draggableId } = result;
 
-    // If the item is dropped outside the list
-    if (!destination) {
-      return;
-    }
+    // If there's no destination, do nothing
+    if (!destination) return;
 
-    // If the item hasn't moved
+    // If the destination is the same as the source and the index is the same, do nothing
     if (
-      source.droppableId === destination.droppableId &&
-      source.index === destination.index
+      destination.droppableId === source.droppableId &&
+      destination.index === source.index
     ) {
       return;
     }
@@ -89,127 +86,187 @@ export function Board() {
 
     if (!sourceColumn || !destColumn) return;
 
-    // Create new arrays
-    const newSourceTasks = Array.from(sourceColumn.tasks);
-    const newDestTasks = source.droppableId === destination.droppableId
-      ? newSourceTasks
-      : Array.from(destColumn.tasks);
+    // If moving within the same column
+    if (sourceColumn.id === destColumn.id) {
+      const newTasks = Array.from(sourceColumn.tasks);
+      const [movedTask] = newTasks.splice(source.index, 1);
+      newTasks.splice(destination.index, 0, movedTask);
 
-    // Remove the task from the source column
-    const [movedTask] = newSourceTasks.splice(source.index, 1);
+      const newColumn = {
+        ...sourceColumn,
+        tasks: newTasks,
+      };
 
-    // Insert the task into the destination column
-    newDestTasks.splice(destination.index, 0, movedTask);
+      setColumns(
+        columns.map(col => (col.id === newColumn.id ? newColumn : col))
+      );
+    } else {
+      // Moving from one column to another
+      const sourceTasks = Array.from(sourceColumn.tasks);
+      const [movedTask] = sourceTasks.splice(source.index, 1);
+      
+      // Update the task's status based on the destination column
+      const updatedTask = {
+        ...movedTask,
+        status: destColumn.title as TaskStatus,
+      };
+      
+      const destTasks = Array.from(destColumn.tasks);
+      destTasks.splice(destination.index, 0, updatedTask);
 
-    // Update the state
-    setColumns(prevColumns =>
-      prevColumns.map(col => {
-        if (col.id === source.droppableId) {
-          return { ...col, tasks: newSourceTasks };
-        }
-        if (col.id === destination.droppableId) {
-          return { ...col, tasks: newDestTasks };
-        }
-        return col;
-      })
-    );
-  }
+      const newSourceColumn = {
+        ...sourceColumn,
+        tasks: sourceTasks,
+      };
+
+      const newDestColumn = {
+        ...destColumn,
+        tasks: destTasks,
+      };
+
+      setColumns(
+        columns.map(col => {
+          if (col.id === newSourceColumn.id) return newSourceColumn;
+          if (col.id === newDestColumn.id) return newDestColumn;
+          return col;
+        })
+      );
+    }
+  };
 
   const handleCreateTask = (newTask: Omit<Task, "id">) => {
-    setColumns(columns => {
-      const todoColumn = columns.find(col => col.id === "todo")
-      if (!todoColumn) return columns
-
-      const task: Task = {
-        ...newTask,
-        id: Math.random().toString(36).substr(2, 9)
-      }
-
-      return columns.map(column => {
-        if (column.id === "todo") {
-          return {
-            ...column,
-            tasks: [task, ...column.tasks]
-          }
-        }
-        return column
-      })
-    })
-  }
+    if (!targetColumnId) return;
+    
+    const column = columns.find(col => col.id === targetColumnId);
+    if (!column) return;
+    
+    const task: Task = {
+      ...newTask,
+      id: Math.random().toString(36).substr(2, 9),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    
+    const updatedColumn = {
+      ...column,
+      tasks: [...column.tasks, task],
+    };
+    
+    setColumns(
+      columns.map(col => (col.id === targetColumnId ? updatedColumn : col))
+    );
+    
+    setIsCreateTaskOpen(false);
+    setTargetColumnId(null);
+  };
 
   const addNewColumn = () => {
-    const newColumnId = `column-${Date.now()}`;
-    setColumns([...columns, { id: newColumnId, title: "New Column", tasks: [] }]);
+    const newColumnId = `column-${columns.length + 1}`;
+    const newColumn: Column = {
+      id: newColumnId,
+      title: `Column ${columns.length + 1}`,
+      tasks: [],
+      order: columns.length
+    };
+    
+    setColumns([...columns, newColumn]);
+  };
+
+  const openCreateTaskDialog = (columnId: string) => {
+    setTargetColumnId(columnId);
+    setIsCreateTaskOpen(true);
+  };
+
+  const deleteColumn = (columnId: string) => {
+    setColumns(columns.filter(col => col.id !== columnId));
   };
 
   return (
-    <DragDropContext onDragEnd={onDragEnd}>
-      <div className="flex-1 overflow-auto p-4">
-        <div className="flex justify-end mb-4">
-          <Button onClick={addNewColumn} size="sm">
-            <Plus className="w-4 h-4 mr-2" /> Add Column
-          </Button>
-        </div>
-        <div className="flex gap-4 h-full">
+    <div className="h-full">
+      <DragDropContext onDragEnd={onDragEnd}>
+        <div className="flex gap-4 overflow-x-auto pb-4 h-full">
           {columns.map((column) => (
-            <Droppable droppableId={column.id} key={column.id}>
-              {(provided, snapshot) => (
-                <div
-                  ref={provided.innerRef}
-                  {...provided.droppableProps}
-                  className={`flex-1 min-w-[350px] p-4 rounded-lg ${snapshot.isDraggingOver ? 'bg-secondary' : 'bg-background'
-                    }`}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={column.title}
-                        onChange={(e) => {
-                          const newColumns = columns.map(c =>
-                            c.id === column.id ? { ...c, title: e.target.value } : c
-                          );
-                          setColumns(newColumns);
-                        }}
-                        className="font-medium capitalize bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                      <Badge variant="secondary" className="rounded-full">
-                        {column.tasks.length}
-                      </Badge>
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={() => {
-                      setColumns(columns.filter(c => c.id !== column.id));
-                    }}>
-                      <Trash2 className="w-4 h-4" />
+            <div key={column.id} className="flex-shrink-0 w-80">
+              <Card className="h-full flex flex-col">
+                <div className="p-3 border-b flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-medium capitalize">{column.title}</h3>
+                    <Badge variant="outline" className="text-xs">
+                      {column.tasks.length}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => openCreateTaskDialog(column.id)}
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span className="sr-only">Add task</span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => deleteColumn(column.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span className="sr-only">Delete column</span>
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7">
+                      <MoreHorizontal className="h-4 w-4" />
+                      <span className="sr-only">More options</span>
                     </Button>
                   </div>
-                  <div className="space-y-4">
-                    {column.tasks.map((task, index) => (
-                      <Draggable key={task.id} draggableId={task.id} index={index}>
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            style={{
-                              ...provided.draggableProps.style,
-                              opacity: snapshot.isDragging ? 0.5 : 1,
-                            }}
-                          >
-                            <TaskCard task={task} columnId={column.id} />
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </div>
                 </div>
-              )}
-            </Droppable>
+                <Droppable droppableId={column.id}>
+                  {(provided) => (
+                    <CardContent
+                      className="flex-1 overflow-y-auto p-2"
+                      {...provided.droppableProps}
+                      ref={provided.innerRef}
+                    >
+                      {column.tasks.map((task, index) => (
+                        <Draggable key={task.id} draggableId={task.id} index={index}>
+                          {(provided) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              className="mb-2"
+                            >
+                              <TaskCard task={task} columnId={column.id} />
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </CardContent>
+                  )}
+                </Droppable>
+              </Card>
+            </div>
           ))}
+          <div className="flex-shrink-0 w-80">
+            <Button
+              variant="outline"
+              className="h-full w-full border-dashed"
+              onClick={addNewColumn}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Column
+            </Button>
+          </div>
         </div>
-      </div>
-    </DragDropContext>
-  )
+      </DragDropContext>
+      
+      <CreateTaskDialog
+        open={isCreateTaskOpen}
+        onOpenChange={setIsCreateTaskOpen}
+        onCreateTask={handleCreateTask}
+      />
+    </div>
+  );
 }
 

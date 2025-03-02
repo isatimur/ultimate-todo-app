@@ -135,7 +135,7 @@ export default function TeamsView({
                     team_id: member.team_id,
                     user_id: member.user_id,
                     role: member.role as "owner" | "admin" | "member",
-                    created_at: member.joined_at,
+                    joined_at: member.joined_at,
                     user: member.user[0]
                 });
                 return acc;

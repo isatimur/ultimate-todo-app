@@ -18,7 +18,7 @@ import {
 } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { IconChartBar, IconChartLine, IconChartPie } from '@tabler/icons-react';
 import { supabase } from '@/lib/supabase-browser';
@@ -139,13 +139,7 @@ export default function Analytics({ user }: AnalyticsProps) {
         });
     }, [analyticsData.tasks, analyticsData.timeEntries, analyticsData.projects]);
 
-    useEffect(() => {
-        if (user) {
-            fetchAnalyticsData();
-        }
-    }, [user, timeRange]);
-
-    const fetchAnalyticsData = async () => {
+    const fetchAnalyticsData = useCallback(async () => {
         if (!user) return;
 
         setLoading(true);
@@ -201,7 +195,13 @@ export default function Analytics({ user }: AnalyticsProps) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [user, timeRange]);
+
+    useEffect(() => {
+        if (user) {
+            fetchAnalyticsData();
+        }
+    }, [user, timeRange, fetchAnalyticsData]);
 
     const CustomTooltip = ({ active, payload, label }: {
         active?: boolean;

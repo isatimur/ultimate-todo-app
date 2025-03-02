@@ -48,10 +48,13 @@ export function QuickAddTask({ onAddTask }: QuickAddTaskProps) {
         updated_at: new Date().toISOString(),
         category: 'Personal',
         priority: 'Medium',
-        completed: false,
-        progress: 0,
         status: 'To Do',
-        owner_id: user?.id || '',
+        user_id: user?.id || '',
+        assignees: [],
+        project_id: 'none',
+        subtasks: [],
+        description: '',
+        
       })
       setTitle('')
       setIsOpen(false)

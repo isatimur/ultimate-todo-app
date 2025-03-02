@@ -7,6 +7,16 @@ import { CalendarView } from '@/components/calendar-view'
 import { Task, Project } from '@/lib/types'
 import { toast } from 'sonner'
 
+/**
+ * Client component for the Calendar page that handles task management operations
+ * and real-time data synchronization with Supabase.
+ * 
+ * Responsible for:
+ * - Fetching and managing tasks and projects data
+ * - Handling task CRUD operations
+ * - Setting up real-time subscriptions for data updates
+ * - Rendering the CalendarView component with appropriate props
+ */
 export function CalendarPageClient() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [projects, setProjects] = useState<Project[]>([])
@@ -14,6 +24,11 @@ export function CalendarPageClient() {
   const supabase = createClient()
 
   useEffect(() => {
+    /**
+     * Fetches initial tasks and projects data from Supabase.
+     * Redirects to signin page if user is not authenticated.
+     * Sets up real-time subscriptions for task updates.
+     */
     const fetchData = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser()
@@ -78,36 +93,96 @@ export function CalendarPageClient() {
     }
   }, [supabase])
 
+  /**
+   * Updates an existing task in the database and local state.
+   * 
+   * @param {string} taskId - The ID of the task to update
+   * @param {Partial<Task>} updates - Object containing the fields to update
+   * @returns {Promise<void>} - Promise that resolves when the update is complete
+   * 
+   * @example
+   * // Update a task's status
+   * handleTaskUpdate("task-123", { status: "Complete", updated_at: new Date().toISOString() });
+   */
   const handleTaskUpdate = async (taskId: string, updates: Partial<Task>) => {
     try {
+      // Add updated_at timestamp
+      const updatedTask = {
+        ...updates,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Ensure taskId is a string
+      const id = String(taskId);
+      
       const { error } = await supabase
         .from('tasks')
-        .update(updates)
-        .eq('id', taskId)
+        .update(updatedTask)
+        .eq('id', id);
 
-      if (error) throw error
-      toast.success('Task updated successfully')
+      if (error) throw error;
+      
+      // Update local state
+      setTasks(tasks.map(task => 
+        task.id === id ? { ...task, ...updatedTask } : task
+      ));
+      
+      toast.success('Task updated successfully');
     } catch (error) {
-      console.error('Error updating task:', error)
-      toast.error('Failed to update task')
+      console.error('Error updating task:', error);
+      toast.error('Failed to update task');
     }
   }
 
+  /**
+   * Deletes a task from the database and removes it from local state.
+   * 
+   * @param {string} taskId - The ID of the task to delete
+   * @returns {Promise<void>} - Promise that resolves when the deletion is complete
+   * 
+   * @example
+   * // Delete a task
+   * handleTaskDelete("task-123");
+   */
   const handleTaskDelete = async (taskId: string) => {
     try {
+      // Ensure taskId is a string
+      const id = String(taskId);
+      
       const { error } = await supabase
         .from('tasks')
         .delete()
-        .eq('id', taskId)
+        .eq('id', id);
 
-      if (error) throw error
-      toast.success('Task deleted successfully')
+      if (error) throw error;
+      
+      // Update local state
+      setTasks(tasks.filter(task => task.id !== id));
+      
+      toast.success('Task deleted successfully');
     } catch (error) {
-      console.error('Error deleting task:', error)
-      toast.error('Failed to delete task')
+      console.error('Error deleting task:', error);
+      toast.error('Failed to delete task');
     }
   }
 
+  /**
+   * Creates a new task in the database and adds it to local state.
+   * Validates required fields and handles user authentication.
+   * 
+   * @param {Partial<Task>} task - The task data to create
+   * @returns {Promise<Task>} - Promise that resolves to the created task data
+   * @throws {Error} - If validation fails or database operation fails
+   * 
+   * @example
+   * // Create a new task
+   * handleAddTask({
+   *   title: "Complete project",
+   *   description: "Finish the project documentation",
+   *   status: "To Do",
+   *   priority: "High"
+   * });
+   */
   const handleAddTask = async (task: Partial<Task>) => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -139,10 +214,14 @@ export function CalendarPageClient() {
         .select()
         .single()
 
-      if (error) throw error
-      console.log('Created task:', data)
-      toast.success('Task added successfully')
-      return data
+      if (error) throw error;
+      
+      // Update local state
+      setTasks([...tasks, data]);
+      
+      console.log('Created task:', data);
+      toast.success('Task added successfully');
+      return data;
     } catch (error) {
       console.error('Error adding task:', error)
       if (error instanceof Error) {

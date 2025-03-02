@@ -55,6 +55,7 @@ type TeamMember = {
 type Team = Database['public']['Tables']['teams']['Row'] & {
   role?: string;
   members: TeamMember[];
+  owner_id?: string;
 }
 
 type TeamInvitation = Database['public']['Tables']['team_invitations']['Row']
@@ -123,18 +124,22 @@ export default function TeamsView({ userId, userEmail }: TeamsViewProps) {
                 avatar_url
               )
             `)
-            .eq('team_id', mt.teams.id)
+            .eq('team_id', Array.isArray(mt.teams) 
+              ? (mt.teams[0] as Database['public']['Tables']['teams']['Row']).id 
+              : (mt.teams as Database['public']['Tables']['teams']['Row']).id)
 
           if (membersError) throw membersError
 
           const formattedTeam: Team = {
-            ...mt.teams,
+            ...(Array.isArray(mt.teams) 
+              ? (mt.teams[0] as Database['public']['Tables']['teams']['Row']) 
+              : (mt.teams as Database['public']['Tables']['teams']['Row'])),
             role: mt.role,
             members: members?.map(m => ({
               id: m.id,
               role: m.role,
               user_id: m.user_id,
-              user: m.profiles
+              user: Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
             })) || []
           }
 

@@ -5,15 +5,43 @@ import AnalyticsDashboard from './analytics-dashboard'
 
 export const dynamic = 'force-dynamic'
 
+// Define types for team and analytics data
+interface Team {
+  team_id: string;
+  name: string;
+  is_owner: boolean;
+  role: string;
+  [key: string]: any;
+}
+
+interface TeamAnalytics {
+  total_tasks: number;
+  completed_tasks: number;
+  in_progress_tasks: number;
+  overdue_tasks: number;
+  completion_rate: number;
+}
+
 async function getAnalyticsData() {
-  const cookieStore = cookies()
+  // Await the cookies() function as it returns a Promise in Next.js 15
+  const cookieStore = await cookies()
+  
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         get(name: string) {
-          return cookieStore.get(name)?.value
+          const cookie = cookieStore.get(name)
+          return cookie?.value
+        },
+        set(name: string, value: string, options: any) {
+          // This is a server component, we can't set cookies directly
+          // This is just to satisfy the type
+        },
+        remove(name: string, options: any) {
+          // This is a server component, we can't remove cookies directly
+          // This is just to satisfy the type
         },
       },
     }
@@ -37,7 +65,7 @@ async function getAnalyticsData() {
 
   // Get analytics for each team
   const teamsWithAnalytics = await Promise.all(
-    (userTeams || []).map(async (team) => {
+    (userTeams || []).map(async (team: Team) => {
       const { data: analytics, error: analyticsError } = await supabase
         .rpc('get_team_analytics', {
           p_team_id: team.team_id
@@ -53,7 +81,7 @@ async function getAnalyticsData() {
             in_progress_tasks: 0,
             overdue_tasks: 0,
             completion_rate: 0
-          }
+          } as TeamAnalytics
         }
       }
 
@@ -84,7 +112,7 @@ async function getAnalyticsData() {
           in_progress_tasks: 0,
           overdue_tasks: 0,
           completion_rate: 0
-        },
+        } as TeamAnalytics,
         members: members || []
       }
     })
@@ -92,7 +120,7 @@ async function getAnalyticsData() {
 
   // Find personal team
   const personalTeam = teamsWithAnalytics.find(team => 
-    team.team_id === userTeams?.find(t => t.is_owner)?.team_id
+    team.team_id === userTeams?.find((t: Team) => t.is_owner)?.team_id
   )
 
   return {

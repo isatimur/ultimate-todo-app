@@ -4,6 +4,7 @@ export interface TeamMember {
     user_id: string;
     role: 'owner' | 'admin' | 'member';
     joined_at: string;
+    created_at?: string;
     user?: {
         id: string;
         email: string;
@@ -16,7 +17,7 @@ export interface Team {
     id: string;
     name: string;
     description: string | null;
-    owner_id: string;
+    owner_id?: string;
     created_at: string;
     updated_at: string;
     members: TeamMember[];

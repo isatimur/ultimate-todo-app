@@ -170,7 +170,7 @@ export const useStore = create<TaskStore>((set, get) => ({
       const { tasks } = get()
       set({ 
         tasks: tasks.map(task => 
-          task.id.toString() === taskId ? { ...task, ...updates } : task
+          task.id.toString() === taskId ? { ...task, ...updates } as TaskType : task
         )
       })
       toast.success('Task updated successfully')

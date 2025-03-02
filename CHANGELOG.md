@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2025-03-03
+
+### Added
+- Comprehensive JSDoc documentation for key components and functions
+- SettingsProviderWrapper component for better client/server component separation
+- Improved error handling in task management functions
+- Enhanced type safety throughout the application
+
+### Fixed
+- Fixed settings layout and context provider integration
+- Resolved task update/delete/add functionality in calendar view
+- Fixed recurrence property access in task components
+- Corrected import statements for SettingsLayout component
+- Fixed type errors in various components
+
+### Changed
+- Improved state management in task operations
+- Enhanced real-time data synchronization
+- Updated Supabase client implementation with better documentation
+- Refactored settings components for better maintainability
+
+### Removed
+- Removed unused components and duplicate code
+- Eliminated redundant type definitions
+
 ## [2.1.0] - 2024-02-27
 
 ### Added
@@ -64,4 +89,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [2.1.0]: https://github.com/yourusername/ultima-todo-app/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/yourusername/ultima-todo-app/compare/v1.0.0...v2.0.0
-[1.0.0]: https://github.com/yourusername/ultima-todo-app/releases/tag/v1.0.0 
+[1.0.0]: https://github.com/yourusername/ultima-todo-app/releases/tag/v1.0.0
+[0.2.0]: https://github.com/yourusername/ultima-todo-app/compare/v0.1.0...v0.2.0 

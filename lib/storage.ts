@@ -1,3 +1,5 @@
+import { supabase } from './supabase-browser';
+
 export async function uploadTaskAttachment(
     taskId: string, 
     file: File

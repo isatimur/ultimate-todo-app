@@ -42,7 +42,7 @@ export function TaskDetailsModal({
         try {
             await onUpdate({
                 ...task,
-                completed
+                status: completed ? 'Complete' : 'To Do'
             });
             toast({
                 title: 'Task updated',
@@ -156,15 +156,15 @@ export function TaskDetailsModal({
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => handleStatusChange(!task.completed)}
+                                        onClick={() => handleStatusChange(task.status !== 'Complete')}
                                         disabled={isUpdating}
                                     >
                                         {isUpdating ? (
                                             <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                                        ) : task.completed ? (
+                                        ) : task.status === 'Complete' ? (
                                             <Icons.check className="mr-2 h-4 w-4" />
                                         ) : null}
-                                        {task.completed ? 'Completed' : 'Mark as Complete'}
+                                        {task.status === 'Complete' ? 'Completed' : 'Mark as Complete'}
                                     </Button>
                                 </>
                             )}
@@ -267,16 +267,20 @@ export function TaskDetailsModal({
                                             type="number"
                                             min="0"
                                             max="100"
-                                            value={editedTask.progress}
-                                            onChange={(e) =>
-                                                setEditedTask({
-                                                    ...editedTask,
-                                                    progress: Math.min(100, Math.max(0, parseInt(e.target.value) || 0))
-                                                })
-                                            }
+                                            value={editedTask.subtasks && editedTask.subtasks.length > 0 
+                                                ? Math.round((editedTask.subtasks.filter(st => st.completed).length / editedTask.subtasks.length) * 100) 
+                                                : 0}
+                                            onChange={(e) => {
+                                                // Progress is calculated from subtasks, so we don't directly set it
+                                                // This input is for display purposes only
+                                            }}
                                         />
                                     ) : (
-                                        <p className="mt-1">{task.progress}%</p>
+                                        <p className="mt-1">
+                                            {task.subtasks && task.subtasks.length > 0 
+                                                ? Math.round((task.subtasks.filter(st => st.completed).length / task.subtasks.length) * 100) 
+                                                : 0}%
+                                        </p>
                                     )}
                                 </div>
                             </div>

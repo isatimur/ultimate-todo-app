@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Task, Project } from '@/lib/types'
+import { Task, Project, TaskStatus, TaskPriority } from '@/lib/types'
 import { TaskCard } from './task-card'
 import { TaskFilters } from './task-filters'
 import { TaskSort } from './task-sort'
@@ -20,13 +20,13 @@ export function TaskList({ initialTasks, userId, projects }: TaskListProps) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
   const [filteredTasks, setFilteredTasks] = useState<Task[]>(initialTasks)
   const [filters, setFilters] = useState({
-    status: [] as string[],
-    priority: [] as string[],
+    status: [] as TaskStatus[],
+    priority: [] as TaskPriority[],
     search: ''
   })
   const [sortConfig, setSortConfig] = useState({
-    field: 'created_at',
-    direction: 'desc'
+    key: 'created_at',
+    direction: 'desc' as 'asc' | 'desc'
   })
   const [isLoading, setIsLoading] = useState(false)
 
@@ -87,8 +87,8 @@ export function TaskList({ initialTasks, userId, projects }: TaskListProps) {
 
     // Apply sorting
     result.sort((a, b) => {
-      const aValue = a[sortConfig.field as keyof Task]
-      const bValue = b[sortConfig.field as keyof Task]
+      const aValue = a[sortConfig.key as keyof Task]
+      const bValue = b[sortConfig.key as keyof Task]
 
       if (!aValue || !bValue) return 0
 

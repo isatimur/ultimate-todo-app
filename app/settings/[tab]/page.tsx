@@ -1,11 +1,27 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase-server';
-import UltimateTodoAppComponent from '@/components/ultima-todo-app-component';
+import SettingsLayout from '@/components/settings/settings-layout';
+import GeneralSettings from '@/components/settings/general-settings';
+import AppearanceSettings from '@/components/settings/appearance-settings';
+import { NotificationSettings } from '@/components/settings/notification-settings';
+import { IntegrationSettings } from '@/components/settings/integration-settings';
+import { TeamSettings } from '@/components/settings/team-settings';
+import { AIPlanningSettings } from '@/components/settings/ai-planning-settings';
+import { MobileSettings } from '@/components/settings/mobile-settings';
+import { CalendarSettings } from '@/components/settings/calendar-settings';
 
-interface SettingsTabPageProps {
-  params: {
-    tab: string;
-  };
+// This helps Next.js understand the structure of the params
+export async function generateStaticParams() {
+  return [
+    { tab: 'general' },
+    { tab: 'appearance' },
+    { tab: 'notifications' },
+    { tab: 'integrations' },
+    { tab: 'team' },
+    { tab: 'ai-planning' },
+    { tab: 'mobile' },
+    { tab: 'calendar' }
+  ]
 }
 
 const validTabs = [
@@ -19,8 +35,8 @@ const validTabs = [
   'calendar'
 ];
 
-export default async function SettingsTabPage({ params }: SettingsTabPageProps) {
-  const { tab } = params;
+export default async function SettingsTabPage(props: any) {
+  const { tab } = props.params;
 
   // Validate tab parameter
   if (!validTabs.includes(tab)) {
@@ -34,9 +50,35 @@ export default async function SettingsTabPage({ params }: SettingsTabPageProps) 
     redirect('/signin');
   }
 
+  // Render the appropriate settings component based on the tab
+  const renderSettingsContent = () => {
+    switch (tab) {
+      case 'general':
+        return <GeneralSettings user={user} />;
+      case 'appearance':
+        return <AppearanceSettings user={user} />;
+      case 'notifications':
+        return <NotificationSettings user={user} />;
+      case 'integrations':
+        return <IntegrationSettings user={user} />;
+      case 'team':
+        return <TeamSettings user={user} />;
+      case 'ai-planning':
+        return <AIPlanningSettings user={user} />;
+      case 'mobile':
+        return <MobileSettings user={user} />;
+      case 'calendar':
+        return <CalendarSettings user={user} />;
+      default:
+        return <GeneralSettings user={user} />;
+    }
+  };
+
   return (
     <main className="flex min-h-screen flex-col">
-      <UltimateTodoAppComponent user={user} initialView="settings" />
+      <SettingsLayout currentTab={tab}>
+        {renderSettingsContent()}
+      </SettingsLayout>
     </main>
   );
 } 

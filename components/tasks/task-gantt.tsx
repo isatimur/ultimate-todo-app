@@ -128,15 +128,26 @@ export function TaskGantt({ initialTasks, userId }: TaskGanttProps) {
 
   const handleCreateTask = async (task: Partial<Task>) => {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('tasks')
         .insert([{ ...task, user_id: userId }])
+        .select(`*, project:projects(*)`)
+        .single()
 
       if (error) throw error
+      
+      // Transform the task to include project_details
+      const transformedTask = data ? {
+        ...data,
+        project_details: data.project
+      } as Task : {} as Task
+      
       toast.success('Task created successfully')
+      return transformedTask
     } catch (error) {
       console.error('Error creating task:', error)
       toast.error('Failed to create task')
+      throw error
     }
   }
 
@@ -187,7 +198,7 @@ export function TaskGantt({ initialTasks, userId }: TaskGanttProps) {
   }
 
   const isOverdue = (task: Task) => {
-    return !task.completed && isBefore(new Date(task.due_date), new Date())
+    return task.status !== 'Complete' && isBefore(new Date(task.due_date), new Date())
   }
 
   const formatDateSafely = (dateStr: string | null | undefined, fallback = 'N/A') => {
@@ -456,7 +467,7 @@ export function TaskGantt({ initialTasks, userId }: TaskGanttProps) {
                       </div>
                       <div className="flex-1" />
                     </div>
-                    {project.tasks.map((task) => (
+                    {project.tasks.map((task: Task) => (
                       <div key={task.id} className="flex group hover:bg-muted/50">
                         <div className="w-64 p-4 border-r pl-6">
                           <div className="font-medium">{task.title}</div>

@@ -20,6 +20,12 @@ export interface Task {
   updated_at: string;
   project_id?: string;
   project?: string;
+  project_details?: {
+    id: string;
+    name: string;
+    color: string;
+    description?: string;
+  } | null;
   time_tracked?: number;
   start_time?: string; // HH:MM format
   end_time?: string;  // HH:MM format
@@ -31,6 +37,7 @@ export interface Task {
   team_id?: string;
   importance?: number;
   urgency?: number;
+  position_key?: string;
 }
 
 export type Project = Database['public']['Tables']['projects']['Row']
@@ -120,6 +127,8 @@ export interface UserProfile {
   full_name?: string
   avatar_url?: string
   updated_at?: string
+  timezone?: string
+  language?: string
 }
 
 export interface Column {

@@ -26,9 +26,17 @@ interface CreateTaskButtonProps {
   onCreateTask: (task: Partial<Task>) => Promise<Task>
   projects?: Project[]
   disabled?: boolean
+  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'
+  className?: string
 }
 
-export function CreateTaskButton({ onCreateTask, projects = [], disabled }: CreateTaskButtonProps) {
+export function CreateTaskButton({ 
+  onCreateTask, 
+  projects = [], 
+  disabled,
+  variant,
+  className
+}: CreateTaskButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isListening, setIsListening] = useState(false)
@@ -138,6 +146,8 @@ export function CreateTaskButton({ onCreateTask, projects = [], disabled }: Crea
           setIsOpen(true)
         }} 
         disabled={disabled}
+        variant={variant}
+        className={className}
       >
         <Plus className="mr-2 h-4 w-4" />
         New Task

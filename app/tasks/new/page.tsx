@@ -32,11 +32,19 @@ async function NewTaskContent() {
     .select('user_id, teams!inner(*)')
     .eq('user_id', user.id)
 
+  // Safely extract team ID if available
+  const teamId = teamMembers && 
+                 teamMembers.length > 0 && 
+                 teamMembers[0].teams && 
+                 typeof teamMembers[0].teams === 'object' ? 
+                 (teamMembers[0].teams as any).id : 
+                 undefined;
+
   return (
     <div className="container mx-auto px-4 py-8">
       <AdvancedTaskForm 
         projects={projects || []}
-        teamId={teamMembers?.[0]?.teams?.id}
+        teamId={teamId}
         userId={user.id}
       />
     </div>

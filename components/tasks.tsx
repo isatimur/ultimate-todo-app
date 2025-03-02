@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { Column, Task, TaskStatus, TaskPriority, View } from '@/lib/types';
+import { Column, Task, TaskStatus, TaskPriority, View, ProjectType } from '@/lib/types';
 import { useUser } from '@/lib/hooks/useUser';
 import { BoardView } from './board-view';
 import { CalendarView } from './calendar-view';
@@ -116,7 +116,7 @@ export function Tasks({
             );
 
             const matchesTags = selectedTags.length === 0 || 
-                (task.tags && selectedTags.every(tag => task.tags.includes(tag)));
+                (task.tags && selectedTags.every(tag => task.tags?.includes(tag)));
 
             return matchesSearch && matchesStatus && matchesPriority && 
                    matchesProject && matchesDateRange && matchesTags;
@@ -138,7 +138,7 @@ export function Tasks({
         getScrollElement: () => parentRef.current,
         estimateSize: () => 100,
         overscan: 10,
-        measureElement: true,
+        getItemKey: (index) => filteredTasks[index].id,
         scrollPaddingStart: 8,
         scrollPaddingEnd: 8,
         initialRect: { width: 0, height: 0 },
@@ -222,7 +222,7 @@ export function Tasks({
             subtasks: [],
             time_tracked: 0,
             project_id: selectedProjectData?.id,
-            project_name: selectedProjectData?.name,
+            project: selectedProjectData?.name,
             tags: [],
             dependencies: [],
             recurrence: null,
@@ -276,9 +276,10 @@ export function Tasks({
         });
     };
 
-    const handleTaskStatusChange = async (taskId: string, newStatus: TaskStatus) => {
+    const handleTaskStatusChange = async (taskId: string | number, newStatus: TaskStatus) => {
         try {
-            const task = tasks.find(t => t.id === taskId);
+            const taskIdStr = String(taskId); // Convert to string in case it's a number
+            const task = tasks.find(t => t.id === taskIdStr);
             if (!task) return;
 
             const updatedTask = {
@@ -334,6 +335,39 @@ export function Tasks({
     useEffect(() => {
         setMounted(true)
     }, [])
+
+    // Create an adapter function to match the expected signature for onTaskUpdate
+    const handleTaskUpdate = useCallback((taskId: string | number, updates: Partial<Task>) => {
+        const taskIdStr = String(taskId); // Convert to string in case it's a number
+        const taskToUpdate = tasks.find(t => t.id === taskIdStr);
+        if (!taskToUpdate) {
+            console.error(`Task with ID ${taskIdStr} not found`);
+            return Promise.reject(new Error(`Task with ID ${taskIdStr} not found`));
+        }
+        return updateTask({ ...taskToUpdate, ...updates });
+    }, [tasks, updateTask]);
+
+    // Create an adapter function to match the expected signature for onTaskDelete
+    const handleTaskDelete = useCallback((id: string | number) => {
+        const idStr = String(id); // Convert to string in case it's a number
+        return deleteTask(idStr);
+    }, [deleteTask]);
+
+    // Create an adapter function to match the expected signature for onTaskStatusChange
+    const handleBoardTaskStatusChange = useCallback((id: string | number) => {
+        // Since the BoardView component doesn't provide the new status,
+        // we need to determine it based on the current task status
+        const idStr = String(id);
+        const task = tasks.find(t => t.id === idStr);
+        if (!task) {
+            console.error(`Task with ID ${idStr} not found`);
+            return Promise.reject(new Error(`Task with ID ${idStr} not found`));
+        }
+        
+        // Toggle the task status between 'To Do' and 'Complete'
+        const newStatus: TaskStatus = task.status === 'Complete' ? 'To Do' : 'Complete';
+        return handleTaskStatusChange(id, newStatus);
+    }, [tasks, handleTaskStatusChange]);
 
     if (!mounted) {
         return (
@@ -448,7 +482,10 @@ export function Tasks({
 
                                 <div className="space-y-2">
                                     <h4 className="font-medium leading-none">Status</h4>
-                                    <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                                    <Select 
+                                        value={selectedStatus} 
+                                        onValueChange={(value) => setSelectedStatus(value as 'all' | TaskStatus)}
+                                    >
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select status" />
                                         </SelectTrigger>
@@ -464,7 +501,10 @@ export function Tasks({
 
                                 <div className="space-y-2">
                                     <h4 className="font-medium leading-none">Priority</h4>
-                                    <Select value={selectedPriority} onValueChange={setSelectedPriority}>
+                                    <Select 
+                                        value={selectedPriority} 
+                                        onValueChange={(value) => setSelectedPriority(value as 'all' | TaskPriority)}
+                                    >
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select priority" />
                                         </SelectTrigger>
@@ -481,7 +521,10 @@ export function Tasks({
                                     <h4 className="font-medium leading-none">Due Date</h4>
                                     <DatePickerWithRange 
                                         value={selectedDateRange}
-                                        onChange={setSelectedDateRange}
+                                        onChange={(date) => setSelectedDateRange({
+                                            from: date?.from,
+                                            to: date?.to || undefined
+                                        })}
                                     />
                                 </div>
 
@@ -570,13 +613,8 @@ export function Tasks({
                             key="list-view"
                             tasks={filteredTasks}
                             projects={projects}
-                            onTaskUpdate={async (taskId, updates) => {
-                                const task = tasks.find(t => t.id === taskId);
-                                if (task) {
-                                    await updateTask({ ...task, ...updates });
-                                }
-                            }}
-                            onTaskDelete={deleteTask}
+                            onTaskUpdate={handleTaskUpdate}
+                            onTaskDelete={handleTaskDelete}
                             setEditingTask={setEditingTask}
                             onAddTask={addTask}
                             generateSubtasks={generateSubtasks}
@@ -586,28 +624,26 @@ export function Tasks({
                         <CalendarView
                             key="calendar-view"
                             tasks={filteredTasks}
-                            onTaskUpdate={updateTask}
+                            onTaskUpdate={handleTaskUpdate}
+                            onTaskDelete={handleTaskDelete}
+                            onAddTask={addTask}
+                            projects={projects}
                         />
                     )}
                     {view === 'gantt' && (
                         <GanttView
                             key="gantt-view"
                             tasks={filteredTasks}
-                            onTaskUpdate={updateTask}
+                            onUpdateTask={handleTaskUpdate}
                         />
                     )}
                     {view === 'board' && (
                         <BoardView
                             key="board-view"
                             tasks={filteredTasks}
-                            onTaskUpdate={async (taskId, updates) => {
-                                const task = tasks.find(t => t.id === taskId);
-                                if (task) {
-                                    await updateTask({ ...task, ...updates });
-                                }
-                            }}
-                            onTaskDelete={deleteTask}
-                            onTaskStatusChange={handleTaskStatusChange}
+                            onTaskUpdate={handleTaskUpdate}
+                            onTaskDelete={handleTaskDelete}
+                            onTaskStatusChange={handleBoardTaskStatusChange}
                             projects={projects}
                             onAddTask={addTask}
                         />

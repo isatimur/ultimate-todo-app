@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Task, TaskPriority, TaskStatus, Team, TeamMember } from '@/lib/types'
-import { ProjectType } from '@/types/project'
+import { Task, TaskPriority, TaskStatus, Team, TeamMember, ProjectType } from '@/lib/types'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -71,13 +70,13 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { QuickAddTask } from './quick-add-task'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useToast } from '@/components/ui/use-toast'
-import { motion } from 'framer-react'
+import { motion } from 'framer-motion'
 
 interface ListViewProps {
   tasks: Task[]
   projects: ProjectType[]
-  team: Team
-  currentMember: TeamMember
+  team?: Team
+  currentMember?: TeamMember
   onTaskUpdate: (taskId: string, updates: Partial<Task>) => Promise<void>
   onTaskDelete: (id: string) => Promise<void>
   setEditingTask: (task: Task | null) => void
@@ -85,7 +84,7 @@ interface ListViewProps {
   onAddTask: (task: Partial<Task>) => Promise<void>
   generateSubtasks?: (taskId: string) => Promise<void>
   regenerateTask?: (taskId: string) => Promise<void>
-  teamMembers: TeamMember[]
+  teamMembers?: TeamMember[]
 }
 
 interface EditTaskDialogProps {
@@ -242,21 +241,26 @@ export function ListView({
           const newStatus = pendingStatusUpdate.checked ? 'Complete' : 'To Do';
           await onTaskUpdate(task.id, { 
             status: newStatus,
-            completed: pendingStatusUpdate.checked,
-            completed_at: pendingStatusUpdate.checked ? new Date().toISOString() : null,
             updated_at: new Date().toISOString()
           });
-          toast.success(`Task marked as ${pendingStatusUpdate.checked ? 'complete' : 'to do'}`);
+          toast({
+            title: 'Success',
+            description: `Task marked as ${pendingStatusUpdate.checked ? 'complete' : 'to do'}`
+          });
         } catch (error) {
           console.error('Error updating task status:', error);
-          toast.error('Failed to update task status');
+          toast({
+            title: 'Error',
+            description: 'Failed to update task status',
+            variant: 'destructive'
+          });
         } finally {
           setPendingStatusUpdate(null);
         }
       };
       updateStatus();
     }
-  }, [pendingStatusUpdate, tasks, onTaskUpdate]);
+  }, [pendingStatusUpdate, tasks, onTaskUpdate, toast]);
 
   const handleStatusChange = useCallback((task: Task, checked: boolean) => {
     setPendingStatusUpdate({ taskId: task.id, checked });
@@ -301,13 +305,13 @@ export function ListView({
   };
 
   // Check if user has permission to perform actions
-  const canManageTasks = currentMember.role === 'owner' || currentMember.role === 'admin';
-  const canDeleteTasks = currentMember.role === 'owner' || currentMember.role === 'admin';
-  const canAssignTasks = currentMember.role === 'owner' || currentMember.role === 'admin';
+  const canManageTasks = currentMember?.role === 'owner' || currentMember?.role === 'admin';
+  const canDeleteTasks = currentMember?.role === 'owner' || currentMember?.role === 'admin';
+  const canAssignTasks = currentMember?.role === 'owner' || currentMember?.role === 'admin';
 
   // Filter tasks based on team settings if they exist
-  const availableStatuses = team.settings?.task_statuses || ['To Do', 'In Progress', 'In Review', 'Complete'];
-  const availablePriorities = team.settings?.task_priorities || ['Low', 'Medium', 'High', 'Urgent'];
+  const availableStatuses = team?.settings?.task_statuses || ['To Do', 'In Progress', 'In Review', 'Complete'];
+  const availablePriorities = team?.settings?.task_priorities || ['Low', 'Medium', 'High', 'Urgent'];
 
   const handleQuickStatusChange = async (task: Task, newStatus: TaskStatus) => {
     if (!availableStatuses.includes(newStatus)) {
@@ -325,8 +329,6 @@ export function ListView({
         ? {
             ...t,
             status: newStatus,
-            completed: newStatus === 'Complete',
-            completed_at: newStatus === 'Complete' ? new Date().toISOString() : null,
             updated_at: new Date().toISOString()
         }
         : t
@@ -336,12 +338,10 @@ export function ListView({
     try {
       await onTaskUpdate(task.id, {
         status: newStatus,
-        completed: newStatus === 'Complete',
-        completed_at: newStatus === 'Complete' ? new Date().toISOString() : null,
         updated_at: new Date().toISOString()
       });
       toast({
-        title: 'Task updated',
+        title: 'Success',
         description: `Task status changed to ${newStatus}`
       });
     } catch (error) {
@@ -373,7 +373,7 @@ export function ListView({
     try {
       await onTaskDelete(taskId);
       toast({
-        title: 'Task deleted',
+        title: 'Success',
         description: 'Successfully deleted the task'
       });
     } catch (error) {
@@ -401,16 +401,21 @@ export function ListView({
       
       await onTaskUpdate(taskId, { 
         subtasks: updatedSubtasks,
-        completed: allSubtasksComplete,
         status: allSubtasksComplete ? 'Complete' : 'To Do',
-        completed_at: allSubtasksComplete ? new Date().toISOString() : null,
         updated_at: new Date().toISOString()
       });
       
-      toast.success(`Subtask marked as ${checked ? 'complete' : 'incomplete'}`);
+      toast({
+        title: 'Success',
+        description: `Subtask marked as ${checked ? 'complete' : 'incomplete'}`
+      });
     } catch (error) {
       console.error('Error updating subtask status:', error);
-      toast.error('Failed to update subtask status');
+      toast({
+        title: 'Error',
+        description: 'Failed to update subtask status',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -418,10 +423,17 @@ export function ListView({
     try {
       if (!generateSubtasks) return;
       await generateSubtasks(taskId);
-      toast.success('Generated subtasks successfully');
+      toast({
+        title: 'Success',
+        description: 'Generated subtasks successfully'
+      });
     } catch (error) {
       console.error('Error generating subtasks:', error);
-      toast.error('Failed to generate subtasks');
+      toast({
+        title: 'Error',
+        description: 'Failed to generate subtasks',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -429,10 +441,17 @@ export function ListView({
     try {
       if (!regenerateTask) return;
       await regenerateTask(taskId);
-      toast.success('Task regenerated successfully');
+      toast({
+        title: 'Success',
+        description: 'Task regenerated successfully'
+      });
     } catch (error) {
       console.error('Error regenerating task:', error);
-      toast.error('Failed to regenerate task');
+      toast({
+        title: 'Error',
+        description: 'Failed to regenerate task',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -457,8 +476,6 @@ export function ListView({
         ? {
             ...task,
             status,
-            completed: status === 'Complete',
-            completed_at: status === 'Complete' ? new Date().toISOString() : null,
             updated_at: new Date().toISOString()
         }
         : task
@@ -470,14 +487,12 @@ export function ListView({
         selectedTasks.map(taskId => 
           onTaskUpdate(taskId, { 
             status,
-            completed: status === 'Complete',
-            completed_at: status === 'Complete' ? new Date().toISOString() : null,
             updated_at: new Date().toISOString()
           })
         )
       );
       toast({
-        title: 'Tasks updated',
+        title: 'Success',
         description: `Successfully updated ${selectedTasks.length} tasks`
       });
       setSelectedTasks([]);
@@ -514,7 +529,7 @@ export function ListView({
     try {
       await Promise.all(selectedTasks.map(taskId => onTaskDelete(taskId)));
       toast({
-        title: 'Tasks deleted',
+        title: 'Success',
         description: `Successfully deleted ${selectedTasks.length} tasks`
       });
       setSelectedTasks([]);
@@ -541,7 +556,7 @@ export function ListView({
         )
       );
       toast({
-        title: 'Tasks updated',
+        title: 'Success',
         description: `Successfully updated priority for ${selectedTasks.length} tasks`
       });
       setSelectedTasks([]);
@@ -557,15 +572,14 @@ export function ListView({
 
   const handleDuplicateTask = async (task: Task) => {
     try {
-      const { id, created_at, updated_at, completed_at, ...taskToDuplicate } = task;
+      const { id, created_at, updated_at, ...taskToDuplicate } = task;
       await onAddTask({
         ...taskToDuplicate,
         title: `${task.title} (Copy)`,
         status: 'To Do',
-        completed: false
       });
       toast({
-        title: 'Task duplicated',
+        title: 'Success',
         description: 'Successfully created a copy of the task'
       });
     } catch (error) {
@@ -581,7 +595,7 @@ export function ListView({
   // Add assignee column and functionality
   const getAssigneeName = (assigneeId?: string) => {
     if (!assigneeId) return null;
-    const member = teamMembers.find(m => m.user_id === assigneeId);
+    const member = teamMembers?.find(m => m.user_id === assigneeId);
     return member?.user.full_name || 'Unknown User';
   };
 
@@ -615,7 +629,7 @@ export function ListView({
     <div className="p-4 space-y-4">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-semibold">{team.name} - Tasks</h2>
+          <h2 className="text-2xl font-semibold">{team?.name} - Tasks</h2>
           {selectedTasks.length > 0 && canManageTasks && (
             <div className="flex items-center gap-2">
               <Badge variant="secondary">
@@ -672,8 +686,8 @@ export function ListView({
             </div>
           )}
         </div>
-        {(currentMember.role === 'owner' || currentMember.role === 'admin' || currentMember.role === 'member') && (
-          <QuickAddTask onAddTask={(task) => onAddTask({ ...task, team_id: team.id })} />
+        {(currentMember?.role === 'owner' || currentMember?.role === 'admin' || currentMember?.role === 'member') && (
+          <QuickAddTask onAddTask={(task) => onAddTask({ ...task, team_id: team?.id })} />
         )}
       </div>
 
@@ -863,10 +877,10 @@ export function ListView({
                   )}
                 </TableCell>
                 <TableCell>
-                  {task.assignee_id ? (
+                  {task.assignees && task.assignees.length > 0 ? (
                     <div className="flex items-center gap-2">
                       <Badge variant="outline">
-                        {getAssigneeName(task.assignee_id)}
+                        {getAssigneeName(task.assignees[0])}
                       </Badge>
                     </div>
                   ) : (
@@ -932,17 +946,17 @@ export function ListView({
                                   Assign to
                                 </DropdownMenuSubTrigger>
                                 <DropdownMenuSubContent>
-                                  {teamMembers.map(member => (
+                                  {teamMembers?.map(member => (
                                     <DropdownMenuItem 
                                       key={member.id}
-                                      onClick={() => onTaskUpdate(task.id, { assignee_id: member.user_id })}
+                                      onClick={() => onTaskUpdate(task.id, { assignees: [member.user_id] })}
                                     >
                                       {member.user.full_name}
                                     </DropdownMenuItem>
                                   ))}
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem
-                                    onClick={() => onTaskUpdate(task.id, { assignee_id: null })}
+                                    onClick={() => onTaskUpdate(task.id, { assignees: [] })}
                                   >
                                     Unassign
                                   </DropdownMenuItem>

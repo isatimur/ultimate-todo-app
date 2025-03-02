@@ -87,31 +87,33 @@ export function useTemplates(options?: UseTemplatesOptions) {
         init();
 
         // Subscribe to real-time changes
+        /*
         const subscription = supabase
             .channel('task_templates_changes')
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'task_templates',
-            }, async (payload: RealtimePayload) => {
-                if (!mounted || !user) return;
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'task_templates' },
+                (payload: RealtimePayload) => {
+                    if (!mounted || !user) return;
 
-                // Check if user has access to the template
-                const hasAccess = payload.new.created_by === user.id ||
-                    payload.new.is_public ||
-                    (payload.new.permissions?.canView || []).includes(user.id);
+                    // Check if user has access to the template
+                    const hasAccess = payload.new.created_by === user.id ||
+                        payload.new.is_public ||
+                        (payload.new.permissions?.canView || []).includes(user.id);
 
-                // Refresh the list to ensure filters are applied
-                if (hasAccess || payload.eventType === 'DELETE') {
-                    await fetchTemplates();
-                    await fetchMetadata();
+                    // Refresh the list to ensure filters are applied
+                    if (hasAccess || payload.eventType === 'DELETE') {
+                        fetchTemplates();
+                        fetchMetadata();
+                    }
                 }
-            })
+            )
             .subscribe();
+        */
 
         return () => {
             mounted = false;
-            subscription.unsubscribe();
+            // subscription.unsubscribe();
         };
     }, [user, fetchTemplates, fetchMetadata]);
 

@@ -5,17 +5,14 @@ import { redirect, notFound } from 'next/navigation'
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
 
-interface TaskPageProps {
-  params: {
-    id: string
-  }
+// This helps Next.js understand the structure of the params
+export async function generateStaticParams() {
+  return []
 }
 
 // This is a dynamic metadata function
-export async function generateMetadata({ params }: TaskPageProps): Promise<Metadata> {
-  // Ensure params is fully resolved before destructuring
-  const resolvedParams = await Promise.resolve(params)
-  const { id } = resolvedParams
+export async function generateMetadata({ params }: any): Promise<Metadata> {
+  const id = params.id
   
   if (!id || id === 'new') return { title: 'New Task | Ultimate Todo App' }
 
@@ -41,11 +38,7 @@ export async function generateMetadata({ params }: TaskPageProps): Promise<Metad
   }
 }
 
-async function TaskContent({ params }: TaskPageProps) {
-  // Ensure params is fully resolved before destructuring
-  const resolvedParams = await Promise.resolve(params)
-  const { id } = resolvedParams
-  
+async function TaskContent({ id }: { id: string }) {
   if (!id) notFound()
   if (id === 'new') redirect('/tasks/new')
 
@@ -94,10 +87,10 @@ async function TaskContent({ params }: TaskPageProps) {
   }
 }
 
-export default function TaskPage(props: TaskPageProps) {
+export default function TaskPage(props: any) {
   return (
     <Suspense fallback={<DashboardSkeleton />}>
-      <TaskContent params={props.params} />
+      <TaskContent id={props.params.id} />
     </Suspense>
   )
 } 

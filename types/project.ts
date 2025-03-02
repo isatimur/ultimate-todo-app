@@ -8,6 +8,7 @@ export interface ProjectType {
   user_id: string;
   created_at?: string;
   updated_at?: string;
+  team_id?: string;
 }
 
 export interface Task {
@@ -94,4 +95,6 @@ export interface TaskType {
     importance: number;
     urgency: number;
     user_id: string;
+    team_id?: string;
+    created_at?: string;
 } 

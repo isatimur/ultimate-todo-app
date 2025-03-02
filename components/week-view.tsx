@@ -51,7 +51,7 @@ export function WeekView({ currentDate, tasks, onTaskClick, getTaskColor }: Week
             const cellTasks = tasks.filter(
               (task) =>
                 new Date(task.date).toDateString() === cellDate.toDateString() &&
-                parseInt(task.startTime?.split(':')[0] || '0') === hour
+                parseInt(task.start_time?.split(':')[0] || '0') === hour
             )
 
             return (
@@ -67,7 +67,7 @@ export function WeekView({ currentDate, tasks, onTaskClick, getTaskColor }: Week
                     onClick={() => onTaskClick(task)}
                   >
                     <div className="font-medium truncate">{task.title}</div>
-                    <div className="text-[10px] opacity-80">{task.startTime} - {task.endTime}</div>
+                    <div className="text-[10px] opacity-80">{task.start_time} - {task.end_time}</div>
                   </motion.div>
                 ))}
               </div>

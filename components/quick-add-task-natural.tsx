@@ -173,7 +173,7 @@ export function QuickAddTaskNatural({ onAddTask }: QuickAddTaskNaturalProps) {
       taskStrings = input.split(/\s+then\s+/i).filter(item => item.trim().length > 0)
     }
     // Then try to split by "and" if it appears to be a list
-    else if (input.toLowerCase().match(/\b(and)\b/g)?.length >= 2) {
+    else if ((input.toLowerCase().match(/\b(and)\b/g) ?? []).length >= 2) {
       taskStrings = input.split(/\s+and\s+/i).filter(item => item.trim().length > 0)
     }
     // Then try to split by commas if there are multiple

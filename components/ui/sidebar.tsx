@@ -163,6 +163,7 @@ export function Sidebar({ user, className, isOpen, onCollapseChange }: SidebarPr
             </nav>
         </div>
     ));
+    NavSection.displayName = 'NavSection';
 
     const NavItem = React.memo(({ item, isCollapsed }: { item: any, isCollapsed: boolean }) => {
         const isActive = pathname === item.href;
@@ -197,6 +198,7 @@ export function Sidebar({ user, className, isOpen, onCollapseChange }: SidebarPr
             </TooltipProvider>
         );
     });
+    NavItem.displayName = 'NavItem';
 
     return (
         <motion.div

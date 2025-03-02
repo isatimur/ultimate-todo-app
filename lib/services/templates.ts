@@ -194,7 +194,7 @@ export class TemplateService {
                     permissions: template.permissions,
                     tags: template.tags,
                     category: template.category,
-                    version: supabase.sql`version + 1`,
+                    updated_at: new Date().toISOString(),
                 })
                 .eq('id', templateId)
                 .select()
@@ -299,7 +299,6 @@ export class TemplateService {
             await supabase
                 .from('task_templates')
                 .update({
-                    usage_count: supabase.sql`usage_count + 1`,
                     last_used: new Date().toISOString()
                 })
                 .eq('id', templateId);
@@ -373,7 +372,7 @@ export class TemplateService {
             const exportData = {
                 name: template.name,
                 description: template.description,
-                tasks: template.tasks.map(task => ({
+                tasks: template.tasks.map((task: any) => ({
                     title: task.title,
                     description: task.description,
                     checklist: task.checklist,

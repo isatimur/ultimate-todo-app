@@ -105,7 +105,7 @@ export function ProfileView({ user, initialProfile }: ProfileViewProps) {
           <div className="flex items-center space-x-4">
             <Avatar className="w-20 h-20">
               <AvatarImage src={profile.avatar_url || undefined} />
-              <AvatarFallback>{getInitials(profile.full_name)}</AvatarFallback>
+              <AvatarFallback>{getInitials(profile.full_name || undefined)}</AvatarFallback>
             </Avatar>
             <div>
               <Input

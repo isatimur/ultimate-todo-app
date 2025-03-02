@@ -1,23 +1,8 @@
 import { createClient } from '@/lib/supabase-server'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 
-// Define the params type
-type Params = {
-  params: {
-    taskId: string;
-  };
-};
-
-// @ts-ignore - Disable type checking for this file
 // PUT handler
-// @ts-ignore
-export async function PUT(
-  // @ts-ignore
-  request: NextRequest,
-  // @ts-ignore
-  context: any
-) {
-  // @ts-ignore
+export async function PUT(request, context) {
   const { taskId } = context.params;
   
   try {
@@ -81,14 +66,7 @@ export async function PUT(
 }
 
 // DELETE handler
-// @ts-ignore
-export async function DELETE(
-  // @ts-ignore
-  request: NextRequest,
-  // @ts-ignore
-  context: any
-) {
-  // @ts-ignore
+export async function DELETE(request, context) {
   const { taskId } = context.params;
   
   try {

@@ -127,16 +127,16 @@ export default function TeamManagementDialog({
                                                 <div className="flex items-center gap-3">
                                                     <Avatar>
                                                         <AvatarImage
-                                                            src={member.profiles?.avatar_url || ''}
-                                                            alt={member.profiles?.full_name || member.profiles?.email}
+                                                            src={member.user?.avatar_url || ''}
+                                                            alt={member.user?.full_name || member.user?.email}
                                                         />
                                                         <AvatarFallback>
-                                                            {member.profiles?.full_name?.[0] || member.profiles?.email?.[0]}
+                                                            {member.user?.full_name?.[0] || member.user?.email?.[0]}
                                                         </AvatarFallback>
                                                     </Avatar>
                                                     <div>
                                                         <p className="font-medium">
-                                                            {member.profiles?.full_name || member.profiles?.email}
+                                                            {member.user?.full_name || member.user?.email}
                                                         </p>
                                                         <div className="flex items-center gap-2 mt-1">
                                                             <Badge

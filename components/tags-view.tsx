@@ -101,7 +101,7 @@ export function TagsView({ userId, initialTags }: TagsViewProps) {
 
       // Update each task to remove the tag
       for (const task of tasks) {
-        const updatedTags = (task.tags || []).filter(tag => tag !== tagToDelete)
+        const updatedTags = (task.tags || []).filter((tag: string) => tag !== tagToDelete)
         const { error } = await supabase
           .from('tasks')
           .update({ tags: updatedTags })

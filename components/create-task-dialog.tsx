@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Task, TaskPriority, TaskCategory, RecurrencePattern } from '@/lib/types'
+import { Task, TaskPriority, TaskCategory, RecurrencePattern, TaskStatus } from '@/lib/types'
 
 interface CreateTaskDialogProps {
   open: boolean
@@ -17,17 +17,21 @@ export function CreateTaskDialog({ open, onOpenChange, onCreateTask }: CreateTas
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
+    const now = new Date().toISOString()
     const newTask: Omit<Task, "id"> = {
       title: formData.get('title') as string,
       description: formData.get('description') as string,
       priority: formData.get('priority') as TaskPriority,
       category: formData.get('category') as TaskCategory,
       date: formData.get('date') as string,
-      startTime: formData.get('startTime') as string,
-      endTime: formData.get('endTime') as string,
-      completed: false,
-      progress: 0,
+      due_date: formData.get('date') as string,
+      start_time: formData.get('startTime') as string,
+      end_time: formData.get('endTime') as string,
       recurrence: formData.get('recurrence') as RecurrencePattern,
+      status: 'To Do' as TaskStatus,
+      created_at: now,
+      updated_at: now,
+      user_id: '',
     }
     onCreateTask(newTask)
     onOpenChange(false)

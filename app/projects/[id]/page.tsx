@@ -9,17 +9,16 @@ import { ProjectView } from '@/components/projects/project-view'
 type Project = Database['public']['Tables']['projects']['Row']
 type Task = Database['public']['Tables']['tasks']['Row']
 
-interface ProjectPageProps {
-  params: {
-    id: string
-  }
+// This helps Next.js understand the structure of the params
+export async function generateStaticParams() {
+  return []
 }
 
 type ProjectWithTasks = Project & {
   tasks: Task[]
 }
 
-export async function generateMetadata({ params }: ProjectPageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: any): Promise<Metadata> {
   const supabase = await createClient()
   const projectId = parseInt(params.id)
   
@@ -43,10 +42,10 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
   }
 }
 
-async function ProjectContent({ params }: ProjectPageProps) {
+async function ProjectContent({ id }: { id: string }) {
   try {
     const supabase = await createClient()
-    const projectId = parseInt(params.id)
+    const projectId = parseInt(id)
 
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     if (userError || !user) {
@@ -82,10 +81,10 @@ async function ProjectContent({ params }: ProjectPageProps) {
   }
 }
 
-export default function ProjectPage(props: ProjectPageProps) {
+export default function ProjectPage(props: any) {
   return (
     <Suspense fallback={<DashboardSkeleton />}>
-      <ProjectContent params={props.params} />
+      <ProjectContent id={props.params.id} />
     </Suspense>
   )
 } 

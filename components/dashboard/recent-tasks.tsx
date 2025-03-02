@@ -8,6 +8,7 @@ import { CreateTaskButton } from '@/components/tasks/create-task-button'
 import { Task } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
+import { useToast } from '@/components/ui/use-toast'
 
 interface RecentTasksProps {
   initialTasks: Task[]
@@ -16,6 +17,7 @@ interface RecentTasksProps {
 
 export function RecentTasks({ initialTasks, user }: RecentTasksProps) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
+  const { toast } = useToast()
 
   useEffect(() => {
     const channel = supabase
@@ -43,11 +45,49 @@ export function RecentTasks({ initialTasks, user }: RecentTasksProps) {
     }
   }, [user.id])
 
+  const handleCreateTask = async (task: Partial<Task>): Promise<Task> => {
+    try {
+      // Add user_id to the task
+      const taskWithUserId = {
+        ...task,
+        user_id: user.id,
+        status: task.status || 'To Do',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert(taskWithUserId)
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Task created",
+        description: "Your task has been created successfully.",
+      });
+
+      return data as Task;
+    } catch (error) {
+      console.error('Error creating task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create task. Please try again.",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
   return (
     <Card className="col-span-3">
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle>Recent Tasks</CardTitle>
-        <CreateTaskButton />
+        <CreateTaskButton onCreateTask={handleCreateTask} />
       </CardHeader>
       <CardContent>
         {tasks.length === 0 ? (

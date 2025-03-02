@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, Fragment, useMemo } from 'react'
-import { Task } from '@/lib/types'
+import { Task, TaskStatus, TaskPriority } from '@/lib/types'
 import { CreateTaskButton } from './create-task-button'
 import { createClient } from '@/lib/supabase-browser'
 import { toast } from 'sonner'
@@ -47,7 +47,6 @@ import {
   Link,
   MessageSquare,
   ArrowDownUp,
-  LinkOff,
   ChevronDown,
   ChevronRight,
   LayoutGrid,
@@ -99,21 +98,22 @@ type SortConfig = {
 }
 
 type Filters = {
-  status: string[]
-  priority: string[]
+  status: TaskStatus[]
+  priority: TaskPriority[]
   dueDate: string
   search: string
 }
 
-interface SortableTaskRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
+interface SortableTaskRowProps extends Omit<React.HTMLAttributes<HTMLTableRowElement>, 'onSelect'> {
   task: Task
   selected: boolean
-  onSelect: (taskId: string) => void
+  onSelect: (taskId: string, checked: boolean) => void
   onEdit: (taskId: string, field: 'title' | 'description') => void
   onDelete: (taskId: string) => void
   isEditing: boolean
   editingField: 'title' | 'description' | null
-  editInputRef: React.RefObject<HTMLInputElement | HTMLTextAreaElement>
+  inputRef: React.RefObject<HTMLInputElement>
+  textareaRef: React.RefObject<HTMLTextAreaElement>
   onStatusChange: (taskId: string, checked: boolean) => void
 }
 
@@ -148,7 +148,8 @@ function SortableTaskRow({
   onDelete,
   isEditing,
   editingField,
-  editInputRef,
+  inputRef,
+  textareaRef,
   onStatusChange,
   ...props
 }: SortableTaskRowProps) {
@@ -183,7 +184,7 @@ function SortableTaskRow({
         <div className="flex items-center gap-2">
           <Checkbox
             checked={selected}
-            onCheckedChange={() => onSelect(task.id)}
+            onCheckedChange={(checked) => onSelect(task.id, checked === true)}
           />
           <button
             className="cursor-grab opacity-0 group-hover:opacity-100 focus:opacity-100"
@@ -197,14 +198,14 @@ function SortableTaskRow({
         <div className="flex items-start gap-3">
           <Checkbox
             checked={task.status === 'Complete'}
-            onCheckedChange={(checked) => onStatusChange(task.id, checked)}
+            onCheckedChange={(checked) => onStatusChange(task.id, checked === true)}
             className="mt-1"
           />
           <div className="min-w-[300px]">
             <div className="font-medium flex items-center gap-2">
               {isEditing && editingField === 'title' ? (
                 <Input
-                  ref={editInputRef}
+                  ref={inputRef}
                   defaultValue={task.title}
                   className="h-7 py-1"
                   onKeyDown={(e) => {
@@ -236,7 +237,7 @@ function SortableTaskRow({
             {task.description ? (
               isEditing && editingField === 'description' ? (
                 <Textarea
-                  ref={editInputRef}
+                  ref={textareaRef}
                   defaultValue={task.description}
                   className="mt-1 min-h-[60px]"
                   onKeyDown={(e) => {
@@ -276,7 +277,7 @@ function SortableTaskRow({
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Clock className="h-3.5 w-3.5" />
                 <span>Created {formatDistanceToNow(new Date(task.created_at), { addSuffix: true })}</span>
-                {task.time_tracked > 0 && (
+                {task.time_tracked && task.time_tracked > 0 && (
                   <>
                     <span>•</span>
                     <span>{task.time_tracked}h tracked</span>
@@ -318,30 +319,38 @@ function SortableTaskRow({
               )}
 
               {/* Comments Count */}
-              {task.comments_count > 0 && (
+              {/* Commenting out as comments_count doesn't exist on Task type */}
+              {/* {task.comments_count && task.comments_count > 0 && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <MessageSquare className="h-3.5 w-3.5" />
                   <span>{task.comments_count}</span>
                 </div>
-              )}
+              )} */}
 
               {/* Assignees */}
               {task.assignees && task.assignees.length > 0 && (
                 <div className="flex -space-x-2">
-                  {task.assignees.slice(0, 3).map((assignee, index) => (
-                    <Avatar 
-                      key={index}
-                      className="h-6 w-6 border-2 border-background"
-                    >
-                      <AvatarImage 
-                        src={assignee.avatar_url} 
-                        alt={assignee.full_name || 'User'} 
-                      />
-                      <AvatarFallback>
-                        {(assignee.full_name || 'U').charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                  ))}
+                  {task.assignees.slice(0, 3).map((assignee, index) => {
+                    // Type assertion for assignee
+                    const assigneeObj = typeof assignee === 'string' 
+                      ? { id: assignee, full_name: assignee, avatar_url: undefined } 
+                      : assignee as { id: string; full_name?: string; avatar_url?: string };
+                    
+                    return (
+                      <Avatar 
+                        key={index}
+                        className="h-6 w-6 border-2 border-background"
+                      >
+                        <AvatarImage 
+                          src={assigneeObj.avatar_url} 
+                          alt={assigneeObj.full_name || 'User'} 
+                        />
+                        <AvatarFallback>
+                          {(assigneeObj.full_name || 'U').charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                    );
+                  })}
                   {task.assignees.length > 3 && (
                     <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-xs border-2 border-background">
                       +{task.assignees.length - 3}
@@ -483,7 +492,8 @@ function TaskTable({ initialTasks, userId }: TaskTableProps) {
   })
   const [editingTask, setEditingTask] = useState<string | null>(null)
   const [editingField, setEditingField] = useState<'title' | 'description' | null>(null)
-  const editInputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const supabase = createClient()
   const [showDependencies, setShowDependencies] = useState(false)
   const [dependencyView, setDependencyView] = useState<{
@@ -600,7 +610,7 @@ function TaskTable({ initialTasks, userId }: TaskTableProps) {
   }
 
   const handleStatusChange = async (taskId: string, checked: boolean) => {
-    const newStatus = checked ? 'Complete' : 'To Do'
+    const newStatus = checked ? 'Complete' : 'To Do' as TaskStatus
     const updates = {
       status: newStatus,
       updated_at: new Date().toISOString()
@@ -610,7 +620,7 @@ function TaskTable({ initialTasks, userId }: TaskTableProps) {
     setTasks(prevTasks =>
       prevTasks.map(task =>
         task.id === taskId
-          ? { ...task, ...updates }
+          ? { ...task, ...updates } as Task
           : task
       )
     )
@@ -631,7 +641,7 @@ function TaskTable({ initialTasks, userId }: TaskTableProps) {
       setTasks(prevTasks =>
         prevTasks.map(task =>
           task.id === taskId
-            ? { ...task, status: task.status }
+            ? { ...task, status: task.status } as Task
             : task
         )
       )
@@ -919,7 +929,7 @@ function TaskTable({ initialTasks, userId }: TaskTableProps) {
         .eq('id', sourceTaskId)
         .single()
 
-      const dependencies = sourceTask?.dependencies?.filter(id => id !== targetTaskId) || []
+      const dependencies = sourceTask?.dependencies?.filter((id: string) => id !== targetTaskId) || []
 
       const { error } = await supabase
         .from('tasks')
@@ -1172,9 +1182,18 @@ function TaskTable({ initialTasks, userId }: TaskTableProps) {
           </div>
 
           <SavedFilters
-            currentFilters={filters}
+            currentFilters={{
+              status: filters.status,
+              priority: filters.priority,
+              search: filters.search
+            }}
             onFilterSelect={(savedFilters) => {
-              handleFiltersChange(savedFilters)
+              handleFiltersChange({
+                ...filters,
+                status: savedFilters.status,
+                priority: savedFilters.priority,
+                search: savedFilters.search
+              })
             }}
           />
 
@@ -1196,12 +1215,12 @@ function TaskTable({ initialTasks, userId }: TaskTableProps) {
               {['To Do', 'In Progress', 'In Review', 'Complete'].map((status) => (
                 <DropdownMenuCheckboxItem
                   key={status}
-                  checked={filters.status.includes(status)}
+                  checked={filters.status.includes(status as TaskStatus)}
                   onCheckedChange={(checked) => {
                     setFilters(prev => ({
                       ...prev,
                       status: checked 
-                        ? [...prev.status, status]
+                        ? [...prev.status, status as TaskStatus]
                         : prev.status.filter(s => s !== status)
                     }))
                   }}
@@ -1215,12 +1234,12 @@ function TaskTable({ initialTasks, userId }: TaskTableProps) {
               {['Low', 'Medium', 'High', 'Urgent'].map((priority) => (
                 <DropdownMenuCheckboxItem
                   key={priority}
-                  checked={filters.priority.includes(priority)}
+                  checked={filters.priority.includes(priority as TaskPriority)}
                   onCheckedChange={(checked) => {
                     setFilters(prev => ({
                       ...prev,
                       priority: checked 
-                        ? [...prev.priority, priority]
+                        ? [...prev.priority, priority as TaskPriority]
                         : prev.priority.filter(p => p !== priority)
                     }))
                   }}
@@ -1390,7 +1409,8 @@ function TaskTable({ initialTasks, userId }: TaskTableProps) {
                       onDelete={handleDelete}
                       isEditing={editingTask === task.id}
                       editingField={editingField}
-                      editInputRef={editInputRef}
+                      inputRef={inputRef}
+                      textareaRef={textareaRef}
                     />
                   ))}
                 </SortableContext>
@@ -1445,4 +1465,4 @@ function TaskTable({ initialTasks, userId }: TaskTableProps) {
 const TaskTableClient = dynamic(() => Promise.resolve(TaskTable), { ssr: false });
 
 // Export the client-side only version
-export { TaskTableClient as TaskTable }; 
+export { TaskTableClient as TaskTable };
