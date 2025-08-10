@@ -164,6 +164,12 @@ The app implements an agentic approach to task management:
    - Adjusts timing based on task proximity
    - Considers user's working hours
 
+## Offline & Notifications
+
+- Service worker powered by Workbox caches assets for offline support.
+- Push notifications use the Notifications API with subscriptions sent to `/api/subscribe`.
+- Set `NEXT_PUBLIC_VAPID_PUBLIC_KEY` to enable browser push messaging.
+
 ## Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
