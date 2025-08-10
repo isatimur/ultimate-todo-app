@@ -38,7 +38,7 @@ export function VoiceTaskSidebar({ onAddTask }: VoiceTaskSidebarProps) {
   const [recentCommands, setRecentCommands] = useState<string[]>([])
   const audioContext = useRef<AudioContext | null>(null)
   const analyzer = useRef<AnalyserNode | null>(null)
-  const dataArray = useRef<Uint8Array | null>(null)
+  const dataArray = useRef<Uint8Array<ArrayBuffer> | null>(null)
   const animationFrameId = useRef<number | null>(null)
 
   // Examples of voice commands for the UI
