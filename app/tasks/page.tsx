@@ -4,6 +4,7 @@ import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
+import { getUserTasks, getProjects } from '@/lib/task-service'
 
 export const metadata: Metadata = {
   title: 'Tasks | Ultimate Todo App',
@@ -21,49 +22,21 @@ async function TasksContent() {
   }
 
   try {
-    // Fetch tasks with their projects
-    const { data: tasks, error: tasksError } = await supabase
-      .from('tasks')
-      .select(`
-        *,
-        project:projects(*)
-      `)
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-
-    if (tasksError) {
-      console.error('Error fetching tasks:', tasksError)
-      throw tasksError
-    }
-
-    // Transform tasks to include project details
-    const transformedTasks = tasks.map(task => ({
-      ...task,
-      project_details: task.project
-    }))
-
-     // Fetch projects
-     const { data: projects, error: projectsError } = await supabase
-     .from('projects')
-     .select('*')
-     .order('name')
-
-   if (projectsError) {
-     console.error('Error fetching projects:', projectsError)
-     throw projectsError
-   }
+    const [tasks, projects] = await Promise.all([
+      getUserTasks(user.id),
+      getProjects(user.id)
+    ])
 
     return (
       <div className="space-y-8">
-        <TaskList 
-          initialTasks={transformedTasks || []}
+        <TaskList
+          initialTasks={tasks}
           userId={user.id}
-          projects={projects || []}
+          projects={projects}
         />
       </div>
     )
   } catch (error) {
-    console.error('Error in TasksContent:', error)
     throw error
   }
 }
