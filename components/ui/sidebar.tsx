@@ -58,7 +58,7 @@ import {
 } from "lucide-react"
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { useMediaQuery } from "@/hooks/use-media-query"
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery"
 import { toast } from 'sonner'
 import {
     Sheet,

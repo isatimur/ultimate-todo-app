@@ -13,7 +13,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { useMediaQuery } from '@/hooks/use-media-query'
+import { useMediaQuery } from '@/lib/hooks/useMediaQuery'
 import { User } from '@supabase/supabase-js'
 import {
   DropdownMenu,
