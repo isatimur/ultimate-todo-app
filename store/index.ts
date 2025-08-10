@@ -19,8 +19,8 @@ export type RootState = TasksSlice & ProjectsSlice & UiSlice
 
 export const useStore = create<RootState>()(
   persist(
-    (set, get) => ({
-      ...createTasksSlice(set as any, get as any),
+    (set, get, api) => ({
+      ...createTasksSlice(set as any, get as any, api as any),
       projects: [],
       fetchProjects: async () => {
         try {
