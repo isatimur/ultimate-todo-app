@@ -1,69 +1,24 @@
-import { createClient } from '@/lib/supabase-server'
 import { NextRequest, NextResponse } from 'next/server'
+import { ApiError, getAuthenticatedUser, verifyTaskOwnership } from '../taskUtils'
 
-// Define the params type
 type Params = {
   params: {
-    taskId: string;
-  };
-};
+    taskId: string
+  }
+}
 
-// @ts-ignore - Disable type checking for this file
-// PUT handler
-// @ts-ignore
-export async function PUT(
-  // @ts-ignore
-  request: NextRequest,
-  // @ts-ignore
-  context: any
-) {
-  // @ts-ignore
-  const { taskId } = context.params;
-  
+export async function PUT(request: NextRequest, { params }: Params) {
+  const { taskId } = params
+
   try {
-    const supabase = await createClient()
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
+    const { supabase, user } = await getAuthenticatedUser()
     const updates = await request.json()
 
-    // Verify task ownership
-    const { data: task, error: taskError } = await supabase
-      .from('tasks')
-      .select('user_id')
-      .eq('id', taskId)
-      .single()
+    await verifyTaskOwnership(supabase, taskId, user.id)
 
-    if (taskError || !task) {
-      return NextResponse.json(
-        { error: 'Task not found' },
-        { status: 404 }
-      )
-    }
-
-    if (task.user_id !== user.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 403 }
-      )
-    }
-
-    // Update task
     const { data, error } = await supabase
       .from('tasks')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString()
-      })
+      .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', taskId)
       .select()
       .single()
@@ -72,6 +27,12 @@ export async function PUT(
 
     return NextResponse.json(data)
   } catch (error) {
+    if (error instanceof ApiError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status }
+      )
+    }
     console.error('Error updating task:', error)
     return NextResponse.json(
       { error: 'Failed to update task' },
@@ -80,53 +41,14 @@ export async function PUT(
   }
 }
 
-// DELETE handler
-// @ts-ignore
-export async function DELETE(
-  // @ts-ignore
-  request: NextRequest,
-  // @ts-ignore
-  context: any
-) {
-  // @ts-ignore
-  const { taskId } = context.params;
-  
+export async function DELETE(request: NextRequest, { params }: Params) {
+  const { taskId } = params
+
   try {
-    const supabase = await createClient()
+    const { supabase, user } = await getAuthenticatedUser()
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    await verifyTaskOwnership(supabase, taskId, user.id)
 
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
-    // Verify task ownership
-    const { data: task, error: taskError } = await supabase
-      .from('tasks')
-      .select('user_id')
-      .eq('id', taskId)
-      .single()
-
-    if (taskError || !task) {
-      return NextResponse.json(
-        { error: 'Task not found' },
-        { status: 404 }
-      )
-    }
-
-    if (task.user_id !== user.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 403 }
-      )
-    }
-
-    // Delete task
     const { error } = await supabase
       .from('tasks')
       .delete()
@@ -136,10 +58,17 @@ export async function DELETE(
 
     return NextResponse.json({ success: true })
   } catch (error) {
+    if (error instanceof ApiError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status }
+      )
+    }
     console.error('Error deleting task:', error)
     return NextResponse.json(
       { error: 'Failed to delete task' },
       { status: 500 }
     )
   }
-} 
+}
+
