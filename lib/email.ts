@@ -1,8 +1,6 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-interface EmailOptions {
+export interface EmailOptions {
     to: string;
     subject: string;
     html: string;
@@ -14,6 +12,8 @@ export async function sendEmail({ to, subject, html, replyTo }: EmailOptions) {
         throw new Error('RESEND_API_KEY is not configured');
     }
 
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
     if (!to || !subject || !html) {
         throw new Error('Missing required email parameters');
     }
@@ -22,7 +22,7 @@ export async function sendEmail({ to, subject, html, replyTo }: EmailOptions) {
         // In development, send all emails to the test email
         const isDevelopment = process.env.NODE_ENV === 'development';
         const testEmail = process.env.NEXT_PUBLIC_TEST_EMAIL;
-        
+
         if (isDevelopment && !testEmail) {
             throw new Error('NEXT_PUBLIC_TEST_EMAIL is required in development mode');
         }
@@ -51,9 +51,9 @@ export async function sendEmail({ to, subject, html, replyTo }: EmailOptions) {
         return { success: true, data };
     } catch (error) {
         console.error('Email sending error:', error);
-        return { 
-            success: false, 
-            error: error instanceof Error ? error.message : 'Failed to send email' 
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to send email'
         };
     }
 }
@@ -76,7 +76,7 @@ export function getInvitationEmailTemplate(teamName: string, inviterName: string
                 <p style="color: #4a5568; line-height: 1.6;">Hello!</p>
                 <p style="color: #4a5568; line-height: 1.6;">${inviterName} has invited you to join their team "${teamName}" on Ultimate Todo App.</p>
                 <div style="text-align: center; margin: 30px 0;">
-                    <a href="${inviteLink}" 
+                    <a href="${inviteLink}"
                        style="display: inline-block; background-color: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: 600;">
                         Accept Invitation
                     </a>
@@ -111,7 +111,7 @@ export function getTaskAssignmentEmailTemplate(taskTitle: string, assignerName: 
                 <p style="color: #4a5568; line-height: 1.6;">Hello!</p>
                 <p style="color: #4a5568; line-height: 1.6;">${assignerName} has assigned you a new task: "${taskTitle}"</p>
                 <div style="text-align: center; margin: 30px 0;">
-                    <a href="${taskLink}" 
+                    <a href="${taskLink}"
                        style="display: inline-block; background-color: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: 600;">
                         View Task
                     </a>
@@ -144,7 +144,7 @@ export function getTaskDueReminderTemplate(taskTitle: string, dueDate: string, t
                 <p style="color: #4a5568; line-height: 1.6;">Hello!</p>
                 <p style="color: #4a5568; line-height: 1.6;">This is a reminder that the task "${taskTitle}" is due on ${dueDate}.</p>
                 <div style="text-align: center; margin: 30px 0;">
-                    <a href="${taskLink}" 
+                    <a href="${taskLink}"
                        style="display: inline-block; background-color: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: 600;">
                         View Task
                     </a>
@@ -157,4 +157,41 @@ export function getTaskDueReminderTemplate(taskTitle: string, dueDate: string, t
         </body>
         </html>
     `;
-} 
+}
+
+export function buildTeamInvitationEmail(
+    data: { teamName: string; inviterName: string; inviteLink: string; recipientEmail: string },
+    replyTo: string
+): EmailOptions {
+    const { teamName, inviterName, inviteLink, recipientEmail } = data;
+    return {
+        to: recipientEmail,
+        subject: `Invitation to join ${teamName} on Ultimate Todo App`,
+        html: getInvitationEmailTemplate(teamName, inviterName, inviteLink),
+        replyTo,
+    };
+}
+
+export function buildTaskAssignmentEmail(
+    data: { taskTitle: string; assignerName: string; taskLink: string; assigneeEmail: string },
+    replyTo: string
+): EmailOptions {
+    const { taskTitle, assignerName, taskLink, assigneeEmail } = data;
+    return {
+        to: assigneeEmail,
+        subject: `New Task Assignment: ${taskTitle}`,
+        html: getTaskAssignmentEmailTemplate(taskTitle, assignerName, taskLink),
+        replyTo,
+    };
+}
+
+export function buildDueReminderEmail(
+    data: { taskTitle: string; dueDate: string; taskLink: string; userEmail: string }
+): EmailOptions {
+    const { taskTitle, dueDate, taskLink, userEmail } = data;
+    return {
+        to: userEmail,
+        subject: `Task Due Reminder: ${taskTitle}`,
+        html: getTaskDueReminderTemplate(taskTitle, dueDate, taskLink),
+    };
+}
