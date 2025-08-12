@@ -1,12 +1,10 @@
 import { Hono } from "hono";
-import { OpenAI } from "openai";
+import openai from "@/lib/openai";
 import { NextResponse } from "next/server";
 
 import { z } from "zod";
 
 export const runtime = "edge";
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Define the schema for request validation
 const parseTaskSchema = z.object({

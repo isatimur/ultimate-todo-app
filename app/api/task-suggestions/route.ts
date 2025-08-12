@@ -1,11 +1,7 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import openai from '@/lib/openai';
 import { z } from 'zod';
 import { TaskPriority, TaskStatus } from '@/lib/types';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 const requestSchema = z.object({
   input: z.string().min(1),

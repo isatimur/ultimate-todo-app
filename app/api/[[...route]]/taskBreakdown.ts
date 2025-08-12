@@ -1,9 +1,5 @@
 import { Hono } from "hono";
-import { OpenAI } from "openai";
-
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+import openai from "@/lib/openai";
 
 const app = new Hono()
     .post(async (c) => {

@@ -1,8 +1,4 @@
-import OpenAI from 'openai'
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+import openai from '@/lib/openai'
 
 export async function transcribeAudio(audio: Blob): Promise<string> {
   const file = new File([audio], 'audio.webm', { type: audio.type })
