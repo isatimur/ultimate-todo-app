@@ -47,16 +47,16 @@ export async function POST(req: Request) {
       userEmail = user.email || undefined
     }
 
-    // Allow tests to pass custom tasks
+    // Allow tests to pass custom tasks; otherwise fetch today's tasks
     let body: any = {}
     try {
       body = await req.json()
     } catch (e) {
       // ignore
     }
-    let tasks: Task[] | undefined = body.tasks
+    let tasks: Task[] = body.tasks ?? []
 
-    if (!tasks) {
+    if (body.tasks === undefined) {
       const start = new Date()
       start.setUTCHours(0, 0, 0, 0)
       const end = new Date()
