@@ -43,6 +43,7 @@ const aiPlanningFormSchema = z.object({
   timeEstimation: z.boolean().default(true),
   dailyPlanning: z.boolean().default(true),
   weeklyReview: z.boolean().default(true),
+  dailyDigest: z.boolean().default(false),
   aiAggressiveness: z.number().min(1).max(10).default(5),
   customInstructions: z.string().optional(),
   dataSharing: z.boolean().default(false),
@@ -63,6 +64,7 @@ export function AIPlanningSettings({ user }: { user: User }) {
     timeEstimation: user.user_metadata?.time_estimation !== false, // Default to true
     dailyPlanning: user.user_metadata?.daily_planning !== false, // Default to true
     weeklyReview: user.user_metadata?.weekly_review !== false, // Default to true
+    dailyDigest: user.user_metadata?.daily_digest === true,
     aiAggressiveness: user.user_metadata?.ai_aggressiveness || 5,
     customInstructions: user.user_metadata?.custom_instructions || "",
     dataSharing: user.user_metadata?.data_sharing || false,
@@ -84,14 +86,15 @@ export function AIPlanningSettings({ user }: { user: User }) {
           custom_endpoint: data.customEndpoint,
           task_suggestions: data.taskSuggestions,
           task_prioritization: data.taskPrioritization,
-          time_estimation: data.timeEstimation,
-          daily_planning: data.dailyPlanning,
-          weekly_review: data.weeklyReview,
-          ai_aggressiveness: data.aiAggressiveness,
-          custom_instructions: data.customInstructions,
-          data_sharing: data.dataSharing,
-        },
-      });
+        time_estimation: data.timeEstimation,
+        daily_planning: data.dailyPlanning,
+        weekly_review: data.weeklyReview,
+        daily_digest: data.dailyDigest,
+        ai_aggressiveness: data.aiAggressiveness,
+        custom_instructions: data.customInstructions,
+        data_sharing: data.dataSharing,
+      },
+    });
 
       if (error) {
         throw error;
@@ -367,8 +370,29 @@ export function AIPlanningSettings({ user }: { user: User }) {
                       </FormItem>
                     )}
                   />
+
+                  <FormField
+                    control={form.control}
+                    name="dailyDigest"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">Daily Digest</FormLabel>
+                          <FormDescription>
+                            Receive a daily email summary of your tasks.
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
                 </div>
-                
+
                 <Separator />
                 
                 <FormField
