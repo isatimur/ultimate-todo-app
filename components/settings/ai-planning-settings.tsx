@@ -43,6 +43,7 @@ const aiPlanningFormSchema = z.object({
   timeEstimation: z.boolean().default(true),
   dailyPlanning: z.boolean().default(true),
   weeklyReview: z.boolean().default(true),
+  dailyDigest: z.boolean().default(false),
   aiAggressiveness: z.number().min(1).max(10).default(5),
   customInstructions: z.string().optional(),
   dataSharing: z.boolean().default(false),
@@ -62,11 +63,12 @@ export function AIPlanningSettings({ user }: { user: User }) {
     taskPrioritization: user.user_metadata?.task_prioritization !== false, // Default to true
     timeEstimation: user.user_metadata?.time_estimation !== false, // Default to true
     dailyPlanning: user.user_metadata?.daily_planning !== false, // Default to true
-    weeklyReview: user.user_metadata?.weekly_review !== false, // Default to true
-    aiAggressiveness: user.user_metadata?.ai_aggressiveness || 5,
-    customInstructions: user.user_metadata?.custom_instructions || "",
-    dataSharing: user.user_metadata?.data_sharing || false,
-  };
+  weeklyReview: user.user_metadata?.weekly_review !== false, // Default to true
+  dailyDigest: user.user_metadata?.daily_digest || false,
+  aiAggressiveness: user.user_metadata?.ai_aggressiveness || 5,
+  customInstructions: user.user_metadata?.custom_instructions || "",
+  dataSharing: user.user_metadata?.data_sharing || false,
+};
 
   const form = useForm<AIPlanningFormValues>({
     resolver: zodResolver(aiPlanningFormSchema),
@@ -87,6 +89,7 @@ export function AIPlanningSettings({ user }: { user: User }) {
           time_estimation: data.timeEstimation,
           daily_planning: data.dailyPlanning,
           weekly_review: data.weeklyReview,
+          daily_digest: data.dailyDigest,
           ai_aggressiveness: data.aiAggressiveness,
           custom_instructions: data.customInstructions,
           data_sharing: data.dataSharing,
@@ -347,9 +350,9 @@ export function AIPlanningSettings({ user }: { user: User }) {
                     )}
                   />
                   
-                  <FormField
-                    control={form.control}
-                    name="weeklyReview"
+                    <FormField
+                      control={form.control}
+                      name="weeklyReview"
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                         <div className="space-y-0.5">
@@ -366,8 +369,29 @@ export function AIPlanningSettings({ user }: { user: User }) {
                         </FormControl>
                       </FormItem>
                     )}
-                  />
-                </div>
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="dailyDigest"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">Daily Summary Email</FormLabel>
+                            <FormDescription>
+                              Receive a daily email with a summary of your tasks.
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 
                 <Separator />
                 
