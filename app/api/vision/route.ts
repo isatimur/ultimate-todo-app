@@ -27,7 +27,12 @@ export async function POST(request: Request) {
           role: 'user',
           content: [
             { type: 'text', text: 'Extract the text from this image.' },
-            { type: 'image_url', image_url: `data:${image.type};base64,${base64}` }
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:${image.type};base64,${base64}`,
+              },
+            },
           ],
         },
       ],
