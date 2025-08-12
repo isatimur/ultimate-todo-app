@@ -1,9 +1,5 @@
 import { NextResponse } from 'next/server'
-import OpenAI from 'openai'
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+import { transcribeAudio } from '@/lib/ai/transcription'
 
 export async function POST(request: Request) {
   try {
@@ -17,17 +13,9 @@ export async function POST(request: Request) {
       )
     }
 
-    // Convert Blob to File object
-    const file = new File([audioFile], 'audio.webm', { type: audioFile.type })
+    const text = await transcribeAudio(audioFile)
 
-    // Transcribe using OpenAI Whisper API
-    const transcription = await openai.audio.transcriptions.create({
-      file: file,
-      model: 'whisper-1',
-      language: 'en',
-    })
-
-    return NextResponse.json({ text: transcription.text })
+    return NextResponse.json({ text })
   } catch (error) {
     console.error('Error in Whisper API:', error)
     return NextResponse.json(
