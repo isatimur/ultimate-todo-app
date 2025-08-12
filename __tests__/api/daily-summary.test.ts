@@ -1,41 +1,43 @@
-import { POST } from '@/app/api/daily-summary/route'
+import { POST } from '@/app/api/ai/daily-summary/route'
 
-const mockSendEmail = jest.fn()
-
-jest.mock('next/headers', () => ({
-  cookies: jest.fn(() => Promise.resolve({
-    get: () => undefined,
-    set: () => {},
-    delete: () => {}
-  }))
-}))
-
-jest.mock('@supabase/ssr', () => ({
-  createServerClient: jest.fn(() => ({
-    auth: {
-      getUser: jest.fn().mockResolvedValue({
-        data: { user: { id: '1', email: 'test@example.com', user_metadata: { daily_digest: false } } },
-        error: null
-      })
+jest.mock('openai', () => {
+  return {
+    OpenAI: function () {
+      return {
+        chat: {
+          completions: {
+            create: jest.fn().mockResolvedValue({
+              choices: [
+                { message: { content: 'You have 1 task today' } }
+              ]
+            })
+          }
+        }
+      }
     }
-  }))
+  }
+})
+
+jest.mock('@/lib/supabase-server', () => ({
+  createClient: async () => ({
+    auth: {
+      getUser: async () => ({ data: { user: { id: '123', email: 'test@example.com' } } })
+    }
+  })
 }))
 
 jest.mock('@/lib/email', () => ({
-  sendEmail: mockSendEmail
+  sendEmail: jest.fn().mockResolvedValue({ success: true })
 }))
 
 describe('daily summary API', () => {
-  it('skips sending email when the flag is off', async () => {
-    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.com'
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'anon'
-
-    const req = new Request('http://localhost', { method: 'POST' })
-    const res = await POST(req)
+  it('returns a summary for provided tasks', async () => {
+    const req = new Request('http://localhost', {
+      method: 'POST',
+      body: JSON.stringify({ tasks: [{ title: 'Test Task', status: 'To Do', due_date: new Date().toISOString() }] })
+    })
+    const res = await POST(req as any)
     const json = await res.json()
-
-    expect(json.skipped).toBe(true)
-    expect(mockSendEmail).not.toHaveBeenCalled()
+    expect(json.summary).toBe('You have 1 task today')
   })
 })
-
