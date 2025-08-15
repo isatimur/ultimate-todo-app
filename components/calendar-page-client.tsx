@@ -31,9 +31,12 @@ export function CalendarPageClient() {
   }
 
   const handleTaskDelete = async (taskId: string) => {
-    const success = await deleteTask(taskId)
-    if (!success) toast.error('Failed to delete task')
-  }
+
+    try {
+      await deleteTask(taskId)
+    } catch {
+      toast.error('Failed to delete task')
+    }
 
   const handleAddTask = async (task: Partial<Task>) => {
     const created = await addTask(task)
