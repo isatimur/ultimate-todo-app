@@ -93,7 +93,9 @@ export function VoiceTaskSidebar({ onAddTask }: VoiceTaskSidebarProps) {
       const updateAudioLevel = () => {
         if (!analyzer.current || !dataArray.current) return;
         
-        analyzer.current.getByteFrequencyData(dataArray.current);
+        analyzer.current.getByteFrequencyData(
+          dataArray.current as Uint8Array<ArrayBuffer>
+        );
         
         // Calculate average level
         const average = dataArray.current.reduce((acc, val) => acc + val, 0) / dataArray.current.length;

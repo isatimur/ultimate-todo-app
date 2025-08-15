@@ -3,7 +3,7 @@
 import * as React from "react"
 import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
-import { useMediaQuery } from "@/hooks/use-media-query"
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery"
 import { toast } from 'sonner'
 import { Button } from "@/components/ui/button"
 import { LogOut } from "lucide-react"
