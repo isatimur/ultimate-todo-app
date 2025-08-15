@@ -33,7 +33,7 @@ interface VersionIndicatorProps {
  */
 export function VersionIndicator({ className }: VersionIndicatorProps) {
   /** Current version number following semantic versioning */
-  const version = 'v2.1.0'
+  const version = 'v2.2.0'
   /** Application codename */
   const codename = 'Ultima'
 
