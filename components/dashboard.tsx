@@ -2,15 +2,18 @@ import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
 import {Cell, Pie, PieChart, ResponsiveContainer, Tooltip} from 'recharts';
 import {Button} from '@/components/ui/button';
 import {BrainIcon, MoreVerticalIcon} from 'lucide-react';
+import { StreakBadge } from '@/components/ui/streak-badge';
 
 interface DashboardProps {
     chartData: { name: string; value: number }[];
     aiSuggestion: string;
     getAISuggestions: () => void;
     applyAISuggestion: () => void;
+    productivityScore: number;
+    streak: number;
 }
 
-export default function Dashboard({chartData, aiSuggestion, getAISuggestions, applyAISuggestion}: DashboardProps) {
+export default function Dashboard({chartData, aiSuggestion, getAISuggestions, applyAISuggestion, productivityScore, streak}: DashboardProps) {
     return (
         <div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -63,6 +66,15 @@ export default function Dashboard({chartData, aiSuggestion, getAISuggestions, ap
                     </CardContent>
                 </Card>
             </div>
+            <Card className="mb-6">
+                <CardHeader>
+                    <CardTitle>Productivity Score</CardTitle>
+                </CardHeader>
+                <CardContent className="flex items-center space-x-2">
+                    <div className="text-2xl font-bold" data-testid="productivity-score">{productivityScore}</div>
+                    <StreakBadge streak={streak} />
+                </CardContent>
+            </Card>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

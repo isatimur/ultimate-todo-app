@@ -109,6 +109,35 @@ export interface Database {
         }
         Relationships: []
       }
+      habit_metrics: {
+        Row: {
+          user_id: string
+          streak: number
+          points: number
+          updated_at: string | null
+        }
+        Insert: {
+          user_id: string
+          streak?: number
+          points?: number
+          updated_at?: string | null
+        }
+        Update: {
+          user_id?: string
+          streak?: number
+          points?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "habit_metrics_user_id_fkey",
+            columns: ["user_id"],
+            isOneToOne: true,
+            referencedRelation: "profiles",
+            referencedColumns: ["id"],
+          },
+        ]
+      }
       projects: {
         Row: {
           color: string

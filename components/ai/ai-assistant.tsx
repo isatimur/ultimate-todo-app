@@ -55,6 +55,54 @@ export function AIAssistant() {
     }, 1000)
   }
 
+  const formatTasks = (tasks: any[], indent = 0): string => {
+    return tasks
+      .map(
+        (task: any) =>
+          `${'  '.repeat(indent)}- ${task.title}` +
+          (task.tasks ? `\n${formatTasks(task.tasks, indent + 1)}` : '')
+      )
+      .join('\n')
+  }
+
+  const handlePlanGoal = async () => {
+    if (!input.trim()) return
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: input,
+      timestamp: new Date()
+    }
+
+    setMessages((prev) => [...prev, userMessage])
+    setInput('')
+    setIsLoading(true)
+
+    try {
+      const res = await fetch('/api/ai/project-planner', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ goal: userMessage.content })
+      })
+      const data = await res.json()
+      const content = formatTasks(data.tasks || [])
+
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content,
+        timestamp: new Date()
+      }
+
+      setMessages((prev) => [...prev, aiMessage])
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   // Simple mock AI response function
   const getAIResponse = (userInput: string) => {
     const input = userInput.toLowerCase()
@@ -149,6 +197,12 @@ export function AIAssistant() {
                 disabled={!input.trim() || isLoading}
               >
                 <Send className="h-4 w-4" />
+              </Button>
+              <Button
+                onClick={handlePlanGoal}
+                disabled={!input.trim() || isLoading}
+              >
+                Plan this goal
               </Button>
               <Button
                 size="icon"

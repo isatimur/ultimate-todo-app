@@ -1,5 +1,6 @@
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from './database.types'
+import { env } from './env'
 
 /**
  * Creates a new Supabase browser client instance
@@ -20,8 +21,8 @@ import type { Database } from './database.types'
  */
 export const createClient = () => {
   return createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    env.NEXT_PUBLIC_SUPABASE_URL,
+    env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   )
 }
 
@@ -31,4 +32,4 @@ export const createClient = () => {
  * This is a singleton instance that can be imported and used
  * throughout the application for Supabase operations.
  */
-export const supabase = createClient() 
+export const supabase = createClient()

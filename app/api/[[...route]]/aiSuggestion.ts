@@ -13,6 +13,10 @@ app.post(async (c) => {
     return c.json({ error: "No tasks provided" }, 400);
   }
 
+  if (Array.isArray(tasks) && tasks.length === 0) {
+    return c.json({ message: "No tasks for today" });
+  }
+
   try {
     const prompt = `
       Analyze the following tasks and provide a suggestion to improve productivity.

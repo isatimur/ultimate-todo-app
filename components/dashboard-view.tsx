@@ -246,7 +246,7 @@ export function DashboardView({
               <TaskOverview tasks={tasks} />
             </div>
             <div className="lg:col-span-3">
-              <RecentTasks initialTasks={tasks} user={user} />
+              <RecentTasks user={user} />
             </div>
           </div>
 
@@ -294,7 +294,7 @@ export function DashboardView({
             </CardHeader>
             <CardContent>
               <div className="h-[600px]">
-                <RecentTasks initialTasks={tasks} user={user} />
+                <RecentTasks user={user} />
               </div>
             </CardContent>
           </Card>

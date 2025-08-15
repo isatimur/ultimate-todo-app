@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from 'react'
-import { Plus, Wand2 } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Plus, Wand2, Mic, Camera } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { Task, TaskTemplate } from '@/lib/types'
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/popover"
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { SpeechRecognitionService } from '@/lib/speech-recognition'
 
 interface QuickAddTaskBarProps {
   columnId: string
@@ -41,10 +42,18 @@ export function QuickAddTaskBar({
   const [selectedProject, setSelectedProject] = useState<string>('none')
   const [suggestions, setSuggestions] = useState<Partial<Task>[]>([])
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false)
-
+  const [isListening, setIsListening] = useState(false)
+  const [speechService] = useState(() => new SpeechRecognitionService())
+  const [isProcessingImage, setIsProcessingImage] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   useEffect(() => {
     setMounted(true)
-  }, [])
+    return () => {
+      if (speechService.isCurrentlyRecording()) {
+        speechService.stopRecording().catch(console.error)
+      }
+    }
+  }, [speechService])
 
   const handleAddTask = async () => {
     if (!taskTitle.trim() || !onAddTask) return
@@ -114,6 +123,51 @@ export function QuickAddTaskBar({
     }
   }
 
+  const toggleRecording = async () => {
+    try {
+      if (!isListening) {
+        await speechService.startRecording()
+        setIsListening(true)
+        toast.info('Recording...')
+      } else {
+        const text = await speechService.stopRecording()
+        setTaskTitle(text)
+        setIsListening(false)
+        toast.success('Transcribed voice input')
+      }
+    } catch (error) {
+      console.error('Speech recognition error:', error)
+      toast.error('Failed to process audio')
+      setIsListening(false)
+    }
+  }
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      setIsProcessingImage(true)
+      const formData = new FormData()
+      formData.append('image', file)
+      const res = await fetch('/api/vision', {
+        method: 'POST',
+        body: formData,
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to extract text')
+      }
+      setTaskTitle(data.text)
+      toast.success('Extracted text from image')
+    } catch (error) {
+      console.error('Image processing error:', error)
+      toast.error('Failed to extract text')
+    } finally {
+      setIsProcessingImage(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -159,6 +213,30 @@ export function QuickAddTaskBar({
           onKeyDown={handleKeyPress}
           placeholder="Enter task title..."
           autoFocus
+        />
+        <Button
+          variant="outline"
+          size="icon"
+          className={cn(isListening && 'animate-pulse')}
+          onClick={() => void toggleRecording()}
+          disabled={isProcessingImage}
+        >
+          <Mic className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isListening || isProcessingImage}
+        >
+          <Camera className="h-4 w-4" />
+        </Button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleImageChange}
+          className="hidden"
         />
         {getAISuggestions && (
           <Popover>

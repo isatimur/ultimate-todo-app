@@ -1,5 +1,38 @@
 # Ultima Todo App API Documentation
 
+## REST API (v1)
+
+### Authentication
+All endpoints under `/api/v1` require a valid Supabase session. Include the Supabase JWT in the `Authorization` header using the `Bearer <token>` scheme.
+
+### Rate Limits
+Requests are limited to **60 per minute** per IP address. Exceeding this will return HTTP 429 responses.
+
+### Endpoints
+
+#### `GET /api/v1/tasks`
+Returns all tasks owned by the authenticated user.
+
+#### `POST /api/v1/tasks`
+Creates a new task for the authenticated user. Accepts a JSON body matching the task schema.
+
+#### `GET /api/v1/projects`
+Returns the user's projects.
+
+#### `POST /api/v1/projects`
+Creates a new project for the authenticated user.
+
+#### `GET /api/v1/user/settings`
+Returns the current user's settings object.
+
+#### `PUT /api/v1/user/settings`
+Upserts the user's settings object. Expects a JSON payload with the settings to apply.
+
+### Webhooks
+
+#### `POST /api/v1/hooks/tasks`
+Allows external services to create or update tasks programmatically. Include a shared secret in the `x-webhook-secret` header. The body should contain an `action` field of `create` or `update` and the task `data`.
+
 ## Task API
 
 ### Task Object Structure

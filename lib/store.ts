@@ -3,6 +3,19 @@ import { supabase } from './supabase'
 import { Task, TaskType, ProjectType, Template, Team, UserProfile } from './types'
 import { toast } from 'sonner'
 
+const calculateMetrics = (tasks: TaskType[]) => {
+  const completed = tasks.filter(t => t.status === 'Complete')
+  const productivityScore = completed.length * 10
+  const dates = new Set(completed.map(t => new Date(t.updated_at).toDateString()))
+  let streak = 0
+  let day = new Date()
+  while (dates.has(day.toDateString())) {
+    streak++
+    day.setDate(day.getDate() - 1)
+  }
+  return { productivityScore, streak }
+}
+
 interface TaskStore {
   // State
   tasks: TaskType[]
@@ -17,6 +30,8 @@ interface TaskStore {
   pomodoroTime: number
   selectedProject: string | null
   aiSuggestion: string
+  productivityScore: number
+  streak: number
   
   // Actions
   setTasks: (tasks: TaskType[]) => void
@@ -64,9 +79,14 @@ export const useStore = create<TaskStore>((set, get) => ({
   pomodoroTime: 25 * 60,
   selectedProject: null,
   aiSuggestion: '',
+  productivityScore: 0,
+  streak: 0,
 
   // State setters
-  setTasks: (tasks) => set({ tasks }),
+  setTasks: (tasks) => {
+    const { productivityScore, streak } = calculateMetrics(tasks)
+    set({ tasks, productivityScore, streak })
+  },
   setProjects: (projects) => set({ projects }),
   setTemplates: (templates) => set({ templates }),
   setTeams: (teams) => set({ teams }),
@@ -94,7 +114,7 @@ export const useStore = create<TaskStore>((set, get) => ({
         subtasks: Array.isArray(task.subtasks) ? task.subtasks : [],
       }))
 
-      set({ tasks: tasksWithSubtasks })
+      get().setTasks(tasksWithSubtasks)
     } catch (error) {
       console.error('Error fetching tasks:', error)
       toast.error('Failed to fetch tasks')
@@ -149,8 +169,8 @@ export const useStore = create<TaskStore>((set, get) => ({
 
       if (error) throw error
 
-      const { tasks } = get()
-      set({ tasks: [...tasks, data] })
+      const { tasks, setTasks } = get()
+      setTasks([...tasks, data])
       toast.success('Task created successfully')
     } catch (error) {
       console.error('Error adding task:', error)
@@ -167,12 +187,12 @@ export const useStore = create<TaskStore>((set, get) => ({
 
       if (error) throw error
 
-      const { tasks } = get()
-      set({ 
-        tasks: tasks.map(task => 
+      const { tasks, setTasks } = get()
+      setTasks(
+        tasks.map(task =>
           task.id.toString() === taskId ? { ...task, ...updates } as TaskType : task
         )
-      })
+      )
       toast.success('Task updated successfully')
     } catch (error) {
       console.error('Error updating task:', error)
@@ -189,8 +209,8 @@ export const useStore = create<TaskStore>((set, get) => ({
 
       if (error) throw error
 
-      const { tasks } = get()
-      set({ tasks: tasks.filter(task => task.id.toString() !== taskId) })
+      const { tasks, setTasks } = get()
+      setTasks(tasks.filter(task => task.id.toString() !== taskId))
       toast.success('Task deleted successfully')
     } catch (error) {
       console.error('Error deleting task:', error)
@@ -199,27 +219,30 @@ export const useStore = create<TaskStore>((set, get) => ({
   },
 
   toggleTaskStatus: async (taskId: string) => {
-    const { tasks } = get()
+    const { tasks, setTasks } = get()
     const task = tasks.find(t => t.id.toString() === taskId)
     if (!task) return
 
     const newStatus = task.status === 'Complete' ? 'To Do' : 'Complete'
     try {
+      const updatedAt = new Date().toISOString()
       const { error } = await supabase
         .from('tasks')
-        .update({ 
+        .update({
           status: newStatus,
-          updated_at: new Date().toISOString()
+          updated_at: updatedAt
         })
         .eq('id', taskId)
 
       if (error) throw error
 
-      set({ 
-        tasks: tasks.map(t => 
-          t.id.toString() === taskId ? { ...t, status: newStatus } : t
+      setTasks(
+        tasks.map(t =>
+          t.id.toString() === taskId
+            ? { ...t, status: newStatus, updated_at: updatedAt }
+            : t
         )
-      })
+      )
       toast.success(`Task marked as ${newStatus}`)
     } catch (error) {
       console.error('Error toggling task status:', error)
