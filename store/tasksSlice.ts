@@ -8,7 +8,7 @@ export interface TasksSlice {
   fetchTasks: () => Promise<void>
   addTask: (task: Partial<Task>) => Promise<Task | null>
   updateTask: (taskId: string, updates: Partial<Task>) => Promise<Task | null>
-  deleteTask: (taskId: string) => Promise<void>
+  deleteTask: (taskId: string) => Promise<boolean>
   getTaskById: (id: string) => Task | undefined
   setTasks: (tasks: Task[] | ((prev: Task[]) => Task[])) => void
 }
@@ -80,8 +80,10 @@ export const createTasksSlice: StateCreator<TasksSlice> = (set, get) => ({
 
       if (error) throw error
       set((state) => ({ tasks: state.tasks.filter((t) => t.id !== taskId) }))
+      return true
     } catch (error) {
       console.error('Failed to delete task', error)
+      return false
     }
   },
 

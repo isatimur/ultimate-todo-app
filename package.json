@@ -1,6 +1,6 @@
 {
   "name": "ultimate-todo-app",
-  "version": "0.2.0",
+  "version": "2.2.0",
   "private": true,
   "scripts": {
     "dev": "NODE_OPTIONS='--inspect' next dev",
